@@ -1,3 +1,5 @@
+require 'libertree/references'
+
 module Libertree
   module Server
     module Responder
@@ -16,6 +18,12 @@ module Libertree
                 'message' => "Unrecognized member username: #{params['username'].inspect}"
               } )
             else
+              if params.has_key? 'references'
+                post_text = Libertree::References::replace(params['text'], params['references'], @server.id)
+              else
+                post_text = params['text']
+              end
+
               # <Pistos> There's a microscopic risk of a race condition here (find/create),
               # but it's so small, I guess we'll ignore it for now.
 
@@ -24,13 +32,13 @@ module Libertree
                 'remote_id' => params['id']
               ]
               if post
-                post.revise params['text']
+                post.revise post_text
               else
                 Model::Post.create(
                   'member_id'  => member.id,
                   'remote_id'  => params['id'],
                   'visibility' => params['visibility'],
-                  'text'       => params['text']
+                  'text' => post_text
                 )
               end
 
