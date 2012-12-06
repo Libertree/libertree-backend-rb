@@ -3,7 +3,7 @@ gem 'm4dbi'
 gem 'rdbi', :git => 'git://github.com/RDBI/rdbi.git'
 gem 'rdbi-driver-postgresql', :git => 'git://github.com/RDBI/rdbi-driver-postgresql.git'
 gem 'pony'
-gem 'libertree-model', :git => 'git://github.com/Libertree/libertree-model-rb.git'
+gem 'libertree-model', :git => 'git://github.com/Libertree/libertree-model-rb.git', :branch => 'account-deletion'
 gem 'libertree-client', :git => 'git://github.com/Libertree/libertree-client-rb.git'
 
 group 'extensions' do
