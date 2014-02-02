@@ -22,7 +22,6 @@ module Jobs
       "request:COMMENT-DELETE"       => Request::COMMENT_DELETE,
       "request:COMMENT-LIKE"         => Request::COMMENT_LIKE,
       "request:COMMENT-LIKE-DELETE"  => Request::COMMENT_LIKE_DELETE,
-      "request:INTRODUCE"            => Request::INTRODUCE,
       "request:FOREST"               => Request::FOREST,
       "request:MEMBER"               => Request::MEMBER,
       "request:MEMBER-DELETE"        => Request::MEMBER_DELETE,
@@ -185,15 +184,14 @@ module Jobs
       key = OpenSSL::PKey::RSA.new File.read(conf['private_key_path'])
       @client_conf =
         {
-          :public_key        => key.public_key,
           :private_key       => key,
           :frontend_url_base => conf['frontend_url_base'],
-          :server_ip         => conf['ip_public'],
           :server_name       => conf['server_name'],
           :domain            => conf['domain'],
           :contact           => conf['contact'],
           :log               => conf['log_handle'],
-          :log_identifier    => conf['log_identifier']
+          :log_identifier    => conf['log_identifier'],
+          :socket            => conf['relay_socket']
         }
     end
 
@@ -201,246 +199,217 @@ module Jobs
       @client_conf
     end
 
-    def self.lt_client(remote_host)
-      c = Libertree::Client.new(@client_conf)
-
-      if c
-        c.connect remote_host
-        if block_given?
-          yield c
-          c.close
-        end
-      end
-
-      c
+    def self.client
+      @client ||= Libertree::Client.new(self.conf)
     end
 
-    def self.with_tree(server_id)
-      server = Libertree::Model::Server[server_id]
-      if server.nil?
-        raise Libertree::JobFailed, "No server with id #{server_id.inspect}"
-      else
-        begin
-          self.lt_client(server.ip) do |client|
-            yield client
+    class RequestJob
+      def self.with_tree(server_id, method_name, *args)
+        server = Libertree::Model::Server[server_id]
+        if server.nil?
+          raise Libertree::JobFailed, "No server with id #{server_id.inspect}"
+        else
+          begin
+            params = Request.client.send(method_name, *args)
+            Request.client.request(server.domain, params)
+
+            # TODO: when the response code is not OK the job should
+            # not be marked as successfully completed. Currently, we
+            # just ignore the response code from the remote tree,
+            # which is very unwise. This defect is also present in the
+            # master branch.
+
+          # TODO: should we just catch *all* exceptions?
+          rescue Timeout::Error => e
+            raise Libertree::RetryJob, "With #{server.domain}: #{e.message}"
           end
-        rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED => e
-          raise Libertree::RetryJob, "With #{server.name_display} (#{server.ip}): #{e.message}"
         end
       end
     end
 
     # TODO: Maybe this code is too defensive, checking for nil comment, like post, etc.
     # Removing the checks would clean up the code a bit.
-    class CHAT
+    class CHAT < RequestJob
       def self.perform(params)
         chat_message = Libertree::Model::ChatMessage[ params['chat_message_id'].to_i ]
         if chat_message
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_chat chat_message
-          end
+          Request.client.req_chat chat_message
         end
       end
     end
 
-    class COMMENT
+    class COMMENT < RequestJob
       def self.perform(params)
         comment = Libertree::Model::Comment[params['comment_id'].to_i]
-        if comment
-          refs = Libertree::References::extract(comment.text, Request.conf[:frontend_url_base])
-          Request::with_tree(params['server_id']) do |tree|
-            response = tree.req_comment(comment, refs)
-            if response['code'] == 'NOT FOUND'
-              # Remote didn't recognize the comment author or the referenced post
-              # Send the potentially missing data, then retry the comment later.
-              case response['message']
-              when /post/
-                if comment.post.local?
-                  tree.req_post comment.post
-                end
-              when /member/
-                tree.req_member comment.member
-              else
-                if comment.post.local?
-                  tree.req_post comment.post
-                end
-                tree.req_member comment.member
-              end
-              raise Libertree::RetryJob, "request associated data first (#{response['message']})"
+        return  if comment.nil?
+
+        refs = Libertree::References::extract(comment.text, Request.conf[:frontend_url_base])
+        response = with_tree(params['server_id'],
+                             :req_comment,
+                             comment, refs)
+
+        if response.xpath("//error/code").text == 'NOT FOUND'
+          # Remote didn't recognize the comment author or the referenced post
+          # Send the potentially missing data, then retry the comment later.
+          case response.xpath("//error/text").text
+          when /post/
+            if comment.post.local?
+              with_tree(params['server_id'],
+                        :req_post,
+                        comment.post)
             end
+          when /member/
+            with_tree(params['server_id'],
+                      :req_member,
+                      comment.member)
+          else
+            if comment.post.local?
+              with_tree(params['server_id'],
+                        :req_post,
+                        comment.post)
+            end
+            with_tree(params['server_id'],
+                      :req_member,
+                      comment.member)
           end
+          raise Libertree::RetryJob, "request associated data first (#{response['message']})"
         end
       end
     end
 
-    class COMMENT_DELETE
+    class COMMENT_DELETE < RequestJob
       def self.perform(params)
-        Request::with_tree(params['server_id']) do |tree|
-          tree.req_comment_delete params['comment_id']
-        end
+        with_tree(params['server_id'], :req_comment_delete, params['comment_id'])
       end
     end
 
-    class COMMENT_LIKE
+    class COMMENT_LIKE < RequestJob
       def self.perform(params)
         like = Libertree::Model::CommentLike[params['comment_like_id'].to_i]
         if like
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_comment_like like
-          end
+          with_tree(params['server_id'], :req_comment_like, like)
         end
       end
     end
 
-    class COMMENT_LIKE_DELETE
+    class COMMENT_LIKE_DELETE < RequestJob
       def self.perform(params)
-        Request::with_tree(params['server_id']) do |tree|
-          tree.req_comment_like_delete params['comment_like_id']
-        end
+        with_tree(params['server_id'],
+                  :req_comment_like_delete,
+                  params['comment_like_id'])
       end
     end
 
-    class INTRODUCE
-      def self.perform(params)
-        client = Request.lt_client(params['host'])
-        # Do nothing else.  We just want to connect, INTRODUCE and AUTHENTICATE
-        client.close
-      end
-    end
-
-    class FOREST
+    class FOREST < RequestJob
       def self.perform(params)
         forest = Libertree::Model::Forest[params['forest_id'].to_i]
-        Request::with_tree(params['server_id']) do |tree|
-          tree.req_forest forest
-        end
+        with_tree(params['server_id'], :req_forest, forest)
       end
     end
 
-    class MEMBER
+    class MEMBER < RequestJob
       def self.perform(params)
         account = Libertree::Model::Account[ username: params['username'] ]
         if account && account.member
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_member account.member
-          end
+          with_tree(params['server_id'], :req_member, account.member)
         end
       end
     end
 
-    class MEMBER_DELETE
+    class MEMBER_DELETE < RequestJob
       def self.perform(params)
-        Request::with_tree(params['server_id']) do |tree|
-          tree.req_member_delete params['username']
-        end
+        with_tree(params['server_id'], :req_member_delete, params['username'])
       end
     end
 
-    class MESSAGE
+    class MESSAGE < RequestJob
       def self.perform(params)
-        message = Libertree::Model::Message[params['message_id'].to_i]
+        message = Libertree::Model::Message[ params['message_id'].to_i ]
         if message
-          Request::with_tree(params['server_id']) do |tree|
-            members = Array(params['recipient_member_ids']).map { |member_id|
-              Libertree::Model::Member[member_id.to_i]
-            }.compact
-            tree.req_message message, members
-          end
+          members = Array(params['recipient_member_ids']).map { |member_id|
+            Libertree::Model::Member[member_id.to_i]
+          }.compact
+          with_tree(params['server_id'], :req_message, message, members)
         end
       end
     end
 
-    class POOL
+    class POOL < RequestJob
       def self.perform(params)
-        pool = Libertree::Model::Pool[params['pool_id'].to_i]
+        pool = Libertree::Model::Pool[ params['pool_id'].to_i ]
         if pool
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_pool pool
-          end
+          with_tree(params['server_id'], :req_pool, pool)
         end
       end
     end
 
-    class POOL_DELETE
+    class POOL_DELETE < RequestJob
       def self.perform(params)
-        pool = Libertree::Model::Pool[params['pool_id'].to_i]
+        pool = Libertree::Model::Pool[ params['pool_id'].to_i ]
         if pool
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_pool_delete pool
-          end
+          with_tree(params['server_id'], :req_pool_delete, pool)
         end
       end
     end
 
-    class POOL_POST
+    class POOL_POST < RequestJob
       def self.perform(params)
         pool = Libertree::Model::Pool[params['pool_id'].to_i]
         post = Libertree::Model::Post[params['post_id'].to_i]
         if pool && post
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_pool_post pool, post
-          end
+          with_tree(params['server_id'], :req_pool_post, pool, post)
         end
       end
     end
 
-    class POOL_POST_DELETE
+    class POOL_POST_DELETE < RequestJob
       def self.perform(params)
         pool = Libertree::Model::Pool[params['pool_id'].to_i]
         post = Libertree::Model::Post[params['post_id'].to_i]
         if pool && post
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_pool_post_delete pool, post
-          end
+          with_tree(params['server_id'], :req_pool_post_delete, pool, post)
         end
       end
     end
 
-    class POST
+    class POST < RequestJob
       def self.perform(params)
         post = Libertree::Model::Post[params['post_id'].to_i]
         if post
           refs = Libertree::References::extract(post.text, Request.conf[:frontend_url_base])
-          Request::with_tree(params['server_id']) do |tree|
-            response = tree.req_post post, refs
-            if response['code'] == 'NOT FOUND'
-              # Remote didn't recognize the post author.
-              # Send the potentially missing data, then retry the comment later.
-              case response['message']
-              when /member/
-                tree.req_member post.member
-              end
-              raise Libertree::RetryJob, "request associated data first (#{response['message']})"
+          response = with_tree(params['server_id'], :req_post, post, refs)
+
+          if response.xpath("//error/code").text == 'NOT FOUND'
+            # Remote didn't recognize the post author.
+            # Send the potentially missing data, then retry the comment later.
+            case response.xpath("//error/text").text
+            when /member/
+              with_tree(params['server_id'], :req_member, post.member)
             end
+            raise Libertree::RetryJob, "request associated data first (#{response['message']})"
           end
         end
       end
     end
 
-    class POST_DELETE
+    class POST_DELETE < RequestJob
       def self.perform(params)
-        Request::with_tree(params['server_id']) do |tree|
-          tree.req_post_delete params['post_id']
-        end
+        with_tree(params['server_id'], :req_post_delete, params['post_id'])
       end
     end
 
-    class POST_LIKE
+    class POST_LIKE < RequestJob
       def self.perform(params)
-        like = Libertree::Model::PostLike[params['post_like_id'].to_i]
+        like = Libertree::Model::PostLike[ params['post_like_id'].to_i ]
         if like
-          Request::with_tree(params['server_id']) do |tree|
-            tree.req_post_like like
-          end
+          with_tree(params['server_id'], :req_post_like, like)
         end
       end
     end
 
-    class POST_LIKE_DELETE
+    class POST_LIKE_DELETE < RequestJob
       def self.perform(params)
-        Request::with_tree(params['server_id']) do |tree|
-          tree.req_post_like_delete params['post_like_id']
-        end
+        with_tree(params['server_id'], :req_post_like_delete, params['post_like_id'])
       end
     end
 

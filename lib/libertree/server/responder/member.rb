@@ -7,12 +7,12 @@ module Libertree
     module Responder
       module Member
         def rsp_member(params)
-          return  if require_parameters(params, 'username')
+          require_parameters(params, 'username')
 
           begin
             member = Model::Member.find_or_create(
               'username' => params['username'],
-              'server_id' => @server.id
+              'server_id' => @remote_tree.id
             )
 
             profile = Libertree::Model::Profile.find_or_create( member_id: member.id )
@@ -22,11 +22,7 @@ module Libertree
                 profile.name_display = params['profile']['name_display']
               rescue PGError => e
                 if e.message =~ /valid_name_display/
-                  respond( {
-                    'code' => 'ERROR',
-                    'message' => "Invalid display name: #{params['profile']['name_display'].inspect}"
-                  } )
-                  return
+                  fail InternalError, "Invalid display name: #{params['profile']['name_display'].inspect}", nil
                 else
                   raise e
                 end
@@ -46,37 +42,25 @@ module Libertree
                 }.to_json
               )
             end
-
-            respond_with_code 'OK'
           rescue URI::InvalidURIError => e
-            respond( {
-              'code' => 'ERROR',
-              'message' => "Invalid URI: #{params['avatar_url']}"
-            } )
+            fail InternalError, "Invalid URI: #{params['avatar_url']}", nil
           rescue PGError => e
-            respond_with_code 'ERROR'
+            fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
 
         def rsp_member_delete(params)
-          return  if require_parameters(params, 'username')
+          require_parameters(params, 'username')
 
           begin
             members = Model::Member.
               where( 'username' => params['username'] ).
-              reject { |p| p.server != @server }
+              reject { |p| p.server != @remote_tree }
 
-            if members.empty?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized username: #{params['username'].inspect}"
-              } )
-            else
-              members[0].delete_cascade  # there should only be one member
-              respond_with_code 'OK'
-            end
+            fail_if_nil members[0], "Unrecognized username: #{params['username'].inspect}"
+            members[0].delete_cascade  # there should only be one member
           rescue PGError => e
-            respond_with_code 'ERROR'
+            fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
       end

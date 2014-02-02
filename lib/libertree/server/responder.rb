@@ -1,6 +1,5 @@
-require 'libertree/server/responder/dispatcher'
+require 'libertree/server/responder/helper'
 
-require 'libertree/server/responder/authentication'
 require 'libertree/server/responder/chat'
 require 'libertree/server/responder/comment'
 require 'libertree/server/responder/comment-like'
@@ -15,58 +14,172 @@ require 'libertree/server/responder/post-like'
 module Libertree
   module Server
     module Responder
-      include Dispatcher
+      extend Blather::DSL
+      extend Helper
 
-      include Authentication
-      include Chat
-      include Comment
-      include CommentLike
-      include Forest
-      include Member
-      include Message
-      include Pool
-      include PoolPost
-      include Post
-      include PostLike
+      extend Chat
+      extend Comment
+      extend CommentLike
+      extend Forest
+      extend Member
+      extend Message
+      extend Pool
+      extend PoolPost
+      extend Post
+      extend PostLike
 
-      def respond(data)
-        # TODO: Gracefully handle failure to convert to JSON
-        response = data.to_json + "\n"
-        if Server.conf['debug']
-          log response
+      when_ready {
+        puts "\nLibertree started."
+        puts "Send messages to #{jid.stripped}."
+      }
+
+      VALID_COMMANDS =
+        [ 'comment',
+          'comment-delete',
+          'comment-like',
+          'comment-like-delete',
+          'forest',
+          'introduce',
+          'member',
+          'member-delete',
+          'message',
+          'pool',
+          'pool-delete',
+          'pool-post',
+          'pool-post-delete',
+          'post',
+          'post-delete',
+          'post-like',
+          'post-like-delete',
+        ]
+
+      VALID_COMMANDS.each do |command|
+        client.register_handler :iq,
+          "/iq/ns:libertree/ns:#{command}", :ns => 'urn:libertree' do |stanza, xpath_result|
+
+          @remote_domain = stanza.from.domain
+          @remote_tree = Libertree::Model::Server[ :domain => @remote_domain ]
+
+          # when we get messages from unknown remotes: abort connection
+          if ( ! ['forest', 'introduce'].include? command ) &&
+              ( ! @remote_tree || @remote_tree.forests.none?(&:local_is_member?) )
+            response = error code: 'UNRECOGNIZED SERVER'
+          else
+            Libertree::Server.log "Received request: '#{command}' from #{stanza.from.stripped}"
+            response = handle command, xpath_result.first
+          end
+
+          respond to: stanza, with: response
+          halt # stop further processing
         end
-        send_data response
       end
 
-      def respond_with_code(code)
-        respond 'code' => code
+      # respond to all other libertree stanzas with an error
+      client.register_handler :iq, "/iq/ns:libertree", :ns => 'urn:libertree' do |stanza|
+        respond to: stanza, with: (error code: 'UNKNOWN COMMAND')
+        halt
       end
 
-      # @param [Hash] params A Hash.
-      # @param [Array] required_parameters The keys which are required.
-      # @return [Array] The keys whose values are missing.
-      def missing_parameters(params, *required_parameters)
-        missing = []
-        required_parameters.each do |rp|
-          if params[rp].nil? || params[rp].respond_to?(:empty?) && params[rp].empty?
-            missing << rp
+      message :chat? do |stanza|
+        # when we get messages from unknown remotes: ignore for now
+        # TODO: check recipient's roster instead
+        @remote_tree = Libertree::Model::Server[ :domain => stanza.from.domain ]
+        if ! @remote_tree || @remote_tree.forests.none?(&:local_is_member?)
+          halt
+        end
+
+        params = {
+          'username' => stanza.from.node,
+          'recipient_username' => stanza.to.node,
+          'text' => stanza.body
+        }
+
+        # handle chat message, ignore errors
+        handle 'chat', params
+        halt # stop further processing
+      end
+
+      # only log errors, never respond to errors!
+      iq :type => :error do |stanza|
+        Libertree::Server.log_error stanza
+        halt
+      end
+
+      # catch all
+      message do |stanza|
+        respond to: stanza, with: (error code: 'UNKNOWN COMMAND')
+      end
+      presence do |stanza|
+        # TODO: not yet implemented
+        # Presence stanzas are used to indicate chat availability for
+        # remote users.
+        respond to: stanza, with: (error code: 'UNKNOWN COMMAND')
+      end
+
+      # handle fatal errors more nicely; default is to repeatedly raise an exception
+      client.register_handler :stream_error, :name => :host_unknown do |err|
+        Libertree::Server.log_error err.message
+        Libertree::Server.quit
+      end
+
+      # Packs an optional XML fragment (opts[:with]) in a standard XMPP reply
+      # to the provided stanza (opts[:to]) and sends out the reply stanza.
+      def self.respond(opts)
+        stanza = opts[:to]
+        response = stanza.reply
+        if opts[:with]
+          response.add_child opts[:with]
+          if opts[:with].node_name == "error"
+            response.type = :error
           end
         end
-        missing
+        write_to_stream response
       end
 
-      # Calls #missing_parameters.  If any parameters are missing, responds (to
-      # the requester) with the first missing parameter.
-      # @return [Boolean] whether there were missing parameters
-      def require_parameters(*args)
-        mp = missing_parameters(*args)
-        if mp[0]
-          respond( {
-            'code' => 'MISSING PARAMETER',
-            'parameter' => mp[0],
-          } )
-          true
+      # Converts the XML payload to a hash and passes it
+      # to the method indicated by the command string.
+      # The method is run for its side effects.
+      def self.process(command, payload)
+        parameters = if payload.class <= Hash
+                       payload
+                     else
+                       xml_to_hash(payload).values.first
+                     end
+        method = "rsp_#{command.gsub('-', '_')}".to_sym
+        send  method, parameters
+      end
+
+      # Generates an error XML fragment given an optional
+      # error code and an optional error message
+      def self.error(opts={ code: 'ERROR' })
+        Nokogiri::XML::Builder.new { |xml|
+          xml.error {
+            xml.code(opts[:code])
+            xml.text_(opts[:text])  if opts[:text]
+          }
+        }.doc.root
+      end
+
+      # Processes a command with an XML nodeset of parameters.
+      # Returns nil when no error occurred, otherwise returns
+      # an XML fragment containing error code and error message.
+      def self.handle(command, params)
+        begin
+          process command, params; nil # generate standard response
+        rescue MissingParameterError => e
+          error code: 'MISSING PARAMETER', text: e.message
+        rescue NotFoundError => e
+          error code: 'NOT FOUND', text: e.message
+        rescue InternalError => e
+          Libertree::Server.log_error e.message
+          error text: e.message
         end
+      end
+
+      # expose client (and with it the XMPP connection) to
+      # the XMPP relay
+      def self.connection
+        client
       end
     end
   end

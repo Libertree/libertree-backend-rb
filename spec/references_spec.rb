@@ -8,12 +8,11 @@ describe Libertree::References do
       FactoryGirl.attributes_for(:member, :server_id => @server.id)
     )
     @server_remote = Libertree::Model::Server.create( FactoryGirl.attributes_for(:server) )
-    key = OpenSSL::PKey::RSA.new(2048, 65537)
-    @server_remote.public_key = key.to_pem
+    @server_remote.domain = "some.remote.tree"
     @member_remote = Libertree::Model::Member.create(
       FactoryGirl.attributes_for(:member, :server_id => @server_remote.id)
     )
-    @public_key = @server.public_key
+    @domain = @server.domain
   end
 
   describe 'extract' do
@@ -24,8 +23,9 @@ describe Libertree::References do
       text = "This is a [relative link](/posts/show/#{post.id}). This too: /posts/show/#{post.id}"
 
       refs = Libertree::References::extract(text, "http://never-mind.org")
-      refs.keys.should include("(/posts/show/#{post.id}")
-      refs.keys.should include(" /posts/show/#{post.id}")
+      matches = refs.map {|ref| ref['reference']['match']}
+      matches.should include("(/posts/show/#{post.id}")
+      matches.should include(" /posts/show/#{post.id}")
     end
 
     it 'extracts absolute links to local posts' do
@@ -35,7 +35,8 @@ describe Libertree::References do
       text = "This is an [absolute link](http://never-mind.org/posts/show/#{post.id})."
 
       refs = Libertree::References::extract(text, "http://never-mind.org")
-      refs.keys.should include("http://never-mind.org/posts/show/#{post.id}")
+      matches = refs.map {|ref| ref['reference']['match']}
+      matches.should include("http://never-mind.org/posts/show/#{post.id}")
     end
 
     it 'does not extract links to remote posts' do
@@ -58,14 +59,16 @@ describe Libertree::References do
       it 'extracts relative links to local springs' do
         text = "This is a [relative link](/pools/show/#{@pool.id}). This too: /pools/show/#{@pool.id}"
         refs = Libertree::References::extract(text, "http://never-mind.org")
-        refs.keys.should include("(/pools/show/#{@pool.id}")
-        refs.keys.should include(" /pools/show/#{@pool.id}")
+        matches = refs.map {|ref| ref['reference']['match']}
+        matches.should include("(/pools/show/#{@pool.id}")
+        matches.should include(" /pools/show/#{@pool.id}")
       end
 
       it 'extracts absolute links to local springs' do
         text = "This is an [absolute link](http://never-mind.org/pools/show/#{@pool.id})."
         refs = Libertree::References::extract(text, "http://never-mind.org")
-        refs.keys.should include("http://never-mind.org/pools/show/#{@pool.id}")
+        matches = refs.map {|ref| ref['reference']['match']}
+        matches.should include("http://never-mind.org/pools/show/#{@pool.id}")
       end
 
       it 'does not extract links to remote springs' do
@@ -110,7 +113,7 @@ EOF
       refs = Libertree::References::extract(original_text, "http://never-mind.org")
 
       # this happens on the receiving server
-      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @public_key)
+      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @domain)
       processed_text.should == expected_text
     end
 
@@ -147,7 +150,7 @@ EOF
       refs = Libertree::References::extract(original_text, "http://never-mind.org")
 
       # this happens on the receiving server
-      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @public_key)
+      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @domain)
       processed_text.should == expected_text
     end
 
@@ -217,7 +220,7 @@ EOF
       refs = Libertree::References::extract(original_text, "http://never-mind.org")
 
       # this happens on the receiving server
-      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @public_key)
+      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @domain)
       processed_text.should == expected_text
     end
 
@@ -261,7 +264,7 @@ EOF
       refs = Libertree::References::extract(original_text, "http://never-mind.org")
 
       # this happens on the receiving server
-      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @public_key)
+      processed_text = Libertree::References::replace(original_text, refs, @server_remote.id, @domain)
       processed_text.should == expected_text
     end
   end

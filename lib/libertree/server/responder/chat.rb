@@ -3,31 +3,19 @@ module Libertree
     module Responder
       module Chat
         def rsp_chat(params)
-          return  if require_parameters(params, 'username', 'recipient_username', 'text')
+          require_parameters(params, 'username', 'recipient_username', 'text')
 
           begin
             from_member = Model::Member[
               'username' => params['username'],
-              'server_id' => @server.id,
+              'server_id' => @remote_tree.id,
             ]
-            if from_member.nil?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized member username: #{params['username'].inspect}"
-              } )
-              return
-            end
+            fail_if_nil from_member, "Unrecognized member username: #{params['username'].inspect}"
 
             to_account = Model::Account[
               'username' => params['recipient_username'],
             ]
-            if to_account.nil?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized recipient username: #{params['recipient_username'].inspect}"
-              } )
-              return
-            end
+            fail_if_nil to_account, "Unrecognized recipient username: #{params['recipient_username'].inspect}"
             to_member = to_account.member
 
             chat_message = Libertree::Model::ChatMessage.create(
@@ -35,11 +23,8 @@ module Libertree
               to_member_id: to_member.id,
               text: params['text']
             )
-
-            respond_with_code 'OK'
           rescue PGError => e
-            log "Error in rsp_chat: #{e.message}"
-            respond_with_code 'ERROR'
+            fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
       end

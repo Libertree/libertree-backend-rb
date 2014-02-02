@@ -1,43 +1,55 @@
 require 'spec_helper'
 
 describe Libertree::Server::Responder::Pool do
+  subject {
+    Class.new.new
+  }
+
+  before :each do
+    subject.class.class_eval {
+      include Libertree::Server::Responder::Helper
+      include Libertree::Server::Responder::Pool
+    }
+  end
+
   describe 'rsp_pool' do
-    include_context 'with an INTRODUCEd and AUTHENTICATEd requester'
+    include_context 'requester in a forest'
 
     context 'and the member is known' do
       before :each do
         @member = Libertree::Model::Member.create(
           FactoryGirl.attributes_for(:member, :server_id => @requester.id)
         )
+        subject.instance_variable_set(:@remote_tree, @requester)
       end
 
-      it 'with a missing id it responds with MISSING PARAMETER' do
+      it 'raises MissingParameterError with a missing id' do
         h = {
           'username'   => @member.username,
           'name'       => 'Pool Name',
         }
-        @s.process "POOL #{h.to_json}"
-        @s.should have_responded_with_code('MISSING PARAMETER')
+        expect { subject.rsp_pool(h) }.
+          to raise_error( Libertree::Server::MissingParameterError )
       end
 
-      it 'with a blank id it responds with MISSING PARAMETER' do
+      it 'raises MissingParameterError with a blank id' do
         h = {
           'username'   => @member.username,
           'id'         => '',
           'name'       => 'Pool Name',
         }
-        @s.process "POOL #{h.to_json}"
-        @s.should have_responded_with_code('MISSING PARAMETER')
+        expect { subject.rsp_pool(h) }.
+          to raise_error( Libertree::Server::MissingParameterError )
       end
 
-      it "with a member username that isn't found it responds with NOT FOUND" do
+      it "raises NotFoundError with a member username that isn't found" do
         h = {
           'username'   => 'nosuchusername',
           'id'         => 4,
           'name'       => 'Pool Name',
         }
-        @s.process "POOL #{h.to_json}"
-        @s.should have_responded_with_code('NOT FOUND')
+        expect { subject.rsp_pool(h) }.
+          to raise_error( Libertree::Server::NotFoundError )
       end
 
       context 'with valid pool data, and a member that does not belong to the requester' do
@@ -48,25 +60,25 @@ describe Libertree::Server::Responder::Pool do
           )
         end
 
-        it 'responds with NOT FOUND' do
+        it 'raises NotFoundError' do
           h = {
             'username'   => @member.username,
             'id'         => 4,
             'name'       => 'Pool Name',
           }
-          @s.process "POOL #{h.to_json}"
-          @s.should have_responded_with_code('NOT FOUND')
+          expect { subject.rsp_pool(h) }.
+            to raise_error( Libertree::Server::NotFoundError )
         end
       end
 
-      it 'with valid data it responds with OK' do
+      it 'raises no errors with valid data' do
         h = {
           'username'   => @member.username,
           'id'         => 4,
           'name'       => 'Pool Name',
         }
-        @s.process "POOL #{h.to_json}"
-        @s.should have_responded_with_code('OK')
+        expect { subject.rsp_pool(h) }.
+          not_to raise_error
       end
 
       context 'when a remote pool exists already' do
@@ -83,8 +95,8 @@ describe Libertree::Server::Responder::Pool do
             'id'         => @pool.remote_id,
             'name'       => 'New Pool Name',
           }
-          @s.process "POOL #{h.to_json}"
-          @s.should have_responded_with_code('OK')
+          expect { subject.rsp_pool(h) }.
+            not_to raise_error
 
           Libertree::Model::Pool[@pool.id].name.should == 'New Pool Name'
         end

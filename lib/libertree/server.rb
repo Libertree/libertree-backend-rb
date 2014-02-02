@@ -1,101 +1,51 @@
-require 'eventmachine'
 require 'json'
-require 'socket'
-require 'openssl'
-require 'base64'
 require 'fileutils'
+require 'blather/client/dsl'
 require 'yaml'
 
-require 'libertree/authenticatable'
 require 'libertree/model'
 require 'libertree/server/responder'
+require 'libertree/server/relay'
 
 module Libertree
   module Server
-    PORT = 14404
-
-    class ConfigurationError < StandardError
-    end
+    class ConfigurationError < StandardError; end
+    class MissingParameterError < StandardError; end
+    class NotFoundError < StandardError; end
+    class InternalError < StandardError; end
 
     class << self
       attr_accessor :conf
-      attr_accessor :log
+      attr_accessor :log_handle
     end
 
     include Responder
+    include Relay
 
-    # EventMachine callbacks
-
-    def post_init
-      # TODO: Not sure if there isn't a better place to read in the local public key
-      key = OpenSSL::PKey::RSA.new File.read( Libertree::Server.conf['private_key_path'] )
-      @public_key = key.public_key.to_pem
-      port, @ip_remote = Socket.unpack_sockaddr_in(get_peername)
-      @data = ''
-      log "#{@ip_remote} connected."
-    end
-
-    # We're assuming this is never called simultaneously by EventMachine for
-    # the same connection.
-    def receive_data(data)
-      begin
-        @data << data
-        if data =~ /\n/
-          process @data
-          @data = ''  # needed?
-        end
-      rescue Exception => e
-        log_error( e.message + "\n" + e.backtrace.reject { |s| s =~ %r{/gems/} }[0..5].join("\n\t") )
-      end
-    end
-
-    def unbind
-      log "#{@ip_remote} disconnected."
-      if @server
-        @server.challenge = nil
-        @server = nil
-      end
-    end
-
-    # -------
-
-    def introduced?
-      @server && @server.public_key
-    end
-
-    def authenticated?
-      @server && @server.authenticated?
-    end
-
-    def in_a_forest?
-      @server && @server.forests.any? { |forest| forest.local_is_member? }
-    end
-
-    def log(s, level = nil)
+    def self.log(s, level = nil)
       t = Time.now.strftime("%Y-%m-%d %H:%M:%S")
       if level
         l = "#{level} "
       end
 
-      if @server
-        id = "server #{@server.id}"
-      else
-        id = @ip_remote
-      end
-
-      Libertree::Server.log.puts "[#{t}] (#{id}) #{l}#{s}"
+      Libertree::Server.log_handle.puts "[#{t}] #{l}#{s}"
     end
 
-    def log_error(s)
-      log s, 'ERROR'
+    def self.log_error(s)
+      self.log s, 'ERROR'
+    end
+
+    def self.log_debug(s)
+      self.log s, 'DEBUG'  if @debug
     end
 
     def self.load_config(config_filename)
       @conf = YAML.load( File.read(config_filename) )
       missing = []
       [
-        'ip_listen',
-        'ip_public',
+        'xmpp_server',
+        'domain',
+        'shared_secret',
         'private_key_path',
       ].each do |required_key|
         if @conf[required_key].nil?
@@ -108,23 +58,29 @@ module Libertree
       end
     end
 
+    def self.conf
+      @conf
+    end
+
+    def self.quit
+      @quit = true
+      puts "Terminating server."
+      EventMachine.stop_event_loop  if EventMachine.reactor_running?
+    end
+
     def self.run(config_filename)
-      quit = false
+      @quit = false
 
       Signal.trap("HUP") do
         puts "\nRestarting server."
         EventMachine.stop_event_loop
       end
 
-      terminate = Proc.new {
-        quit = true
-        puts "Terminating server."
-        EventMachine.stop_event_loop
-      }
+      terminate = Proc.new { self.quit }
       Signal.trap("TERM", &terminate)
       Signal.trap("INT" , &terminate)
 
-      until quit
+      until @quit
         begin
           load_config config_filename
 
@@ -139,10 +95,11 @@ module Libertree
           end
 
           if @conf['log_path']
-            @log = File.open( @conf['log_path'], 'a+' )
-            @log.sync = true
+            @log_handle = File.open( @conf['log_path'], 'a+' )
+            @log_handle.sync = true
+            puts "Logging to #{File.absolute_path(@log_handle.path)}"
           else
-            @log = $stdout
+            @log_handle = $stdout
           end
         rescue ConfigurationError => e
           $stderr.puts e.message
@@ -157,18 +114,29 @@ module Libertree
           end
         end
 
-        EventMachine.run do
-          host = @conf['ip_listen'] || '127.0.0.1'
-          EventMachine.start_server( host, PORT, self )
-          puts "Libertree started."
-          puts "Listening on #{host}, port #{PORT}."
-          if @log.respond_to? :path
-            puts "Logging to #{File.absolute_path(@log.path)}"
-          end
+        @debug = true  if @conf['debug']
+        host   = @conf['xmpp_server']
+        domain = @conf['domain']
+        secret = @conf['shared_secret']
+        port   = @conf['port'].to_i || 5347
+        socket = @conf['relay_socket'] || "/tmp/libertree-relay"
+
+        Responder.setup domain, secret, host, port
+        begin
+          EventMachine.run {
+            Responder.run
+            EventMachine.start_unix_domain_server socket, Relay
+          }
+        rescue Blather::Stream::ConnectionTimeout
+          log_error "Connection to the XMPP server on #{host} timed out; retrying."
+          sleep 3
+        rescue Blather::Stream::ConnectionFailed
+          log_error "No connection to the XMPP server on #{host}; retrying."
+          sleep 3
         end
 
-        if @log.respond_to? :path
-          @log.close
+        if @log_handle.respond_to? :path
+          @log_handle.close
         end
       end
     end

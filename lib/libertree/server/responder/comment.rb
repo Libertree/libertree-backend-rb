@@ -5,29 +5,19 @@ module Libertree
     module Responder
       module Comment
         def rsp_comment(params)
-          return  if require_parameters(params, 'id', 'username', 'public_key', 'post_id', 'text')
+          require_parameters(params, 'id', 'username', 'origin', 'post_id', 'text')
 
           begin
             member = Model::Member[
               'username' => params['username'],
-              'server_id' => @server.id,
+              'server_id' => @remote_tree.id,
             ]
-            if member.nil?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized member username: #{params['username'].inspect}"
-              } )
-              return
-            end
+            fail_if_nil member, "Unrecognized member username: #{params['username'].inspect}"
 
-            origin = Model::Server[ public_key: params['public_key'] ]
-            if origin.nil? && params['public_key'] != @public_key
+            origin = Model::Server[ domain: params['origin'] ]
+            if origin.nil? && params['origin'] != Server.conf['domain']
               # TODO: Is this revealing too much to the requester?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized origin server."
-              } )
-              return
+              fail NotFoundError, 'Unrecognized origin server.', nil
             end
 
             if origin.nil?
@@ -40,17 +30,11 @@ module Libertree
               }
               post = posts[0]  # There should only be one or none
             end
-
-            if post.nil?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized post."
-              } )
-              return
-            end
+            fail_if_nil post, 'Unrecognized post.'
 
             if params.has_key? 'references'
-              comment_text = Libertree::References::replace(params['text'], params['references'], @server.id, @public_key)
+              refs = params['references']['reference']
+              comment_text = Libertree::References::replace(params['text'], refs, @remote_tree.id, Server.conf['domain'])
             else
               comment_text = params['text']
             end
@@ -62,32 +46,23 @@ module Libertree
               # TODO: Sanitize with Loofah
               'text' => comment_text
             )
-
-            respond_with_code 'OK'
           rescue PGError => e
-            respond_with_code 'ERROR'
+            fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
 
         def rsp_comment_delete(params)
-          return  if require_parameters(params, 'id')
+          require_parameters(params, 'id')
 
           begin
             comments = Model::Comment.
               where( 'remote_id' => params['id'] ).
-              reject { |c| c.member.server != @server }
+              reject { |c| c.member.server != @remote_tree }
 
-            if comments.empty?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized comment ID: #{params['id'].inspect}"
-              } )
-            else
-              comments[0].delete_cascade  # there should only be one comment
-              respond_with_code 'OK'
-            end
+            fail_if_nil comments[0], "Unrecognized comment ID: #{params['id'].inspect}"
+            comments[0].delete_cascade  # there should only be one comment
           rescue PGError => e
-            respond_with_code 'ERROR'
+            fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
       end

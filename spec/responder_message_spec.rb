@@ -1,23 +1,37 @@
 require 'spec_helper'
 
 describe Libertree::Server::Responder::Message do
+  subject {
+    Class.new.new
+  }
+
+  before :each do
+    subject.class.class_eval {
+      include Libertree::Server::Responder::Helper
+      include Libertree::Server::Responder::Message
+    }
+  end
+
   describe 'rsp_message' do
-    include_context 'with an INTRODUCEd and AUTHENTICATEd requester'
+    include_context 'requester in a forest'
+    before :each do
+      subject.instance_variable_set(:@remote_tree, @requester)
+    end
 
     context 'and the responder has no record of the sending member' do
-      it 'responds with NOT FOUND' do
+      it 'raises NotFoundError' do
         h = {
           'username' => 'sender',
           'recipients' => [
             {
               'username' => 'recipient',
-              'public_key' => '69e2c3164868a8d9ba4c77db842553a13116bef8',
+              'origin'   => 'does.not.matter',
             },
           ],
           'text' => 'a direct message',
         }
-        @s.process "MESSAGE #{h.to_json}"
-        @s.should have_responded_with_code('NOT FOUND')
+        expect { subject.rsp_message(h) }.
+          to raise_error( Libertree::Server::NotFoundError )
       end
     end
 
@@ -28,13 +42,13 @@ describe Libertree::Server::Responder::Message do
         )
       end
 
-      it 'and a parameter is missing or blank, it responds with MISSING PARAMETER' do
+      it 'raises MissingParameterError when a parameter is missing or blank' do
         h = {
           'username' => @member.username,
           'recipients' => [
             {
               'username' => 'recipient',
-              'public_key' => '69e2c3164868a8d9ba4c77db842553a13116bef8',
+              'origin'   => 'does.not.matter',
             },
           ],
           'text' => 'a direct message',
@@ -43,13 +57,13 @@ describe Libertree::Server::Responder::Message do
         keys = h.keys
         keys.each do |key|
           h_ = h.reject { |k,v| k == key }
-          @s.process "MESSAGE #{h_.to_json}"
-          @s.should have_responded_with_code('MISSING PARAMETER')
+          expect { subject.rsp_message(h_) }.
+            to raise_error( Libertree::Server::MissingParameterError )
 
           h_ = h.dup
           h_[key] = ''
-          @s.process "MESSAGE #{h_.to_json}"
-          @s.should have_responded_with_code('MISSING PARAMETER')
+          expect { subject.rsp_message(h_) }.
+            to raise_error( Libertree::Server::MissingParameterError )
         end
       end
 
@@ -61,19 +75,19 @@ describe Libertree::Server::Responder::Message do
           )
         end
 
-        it 'responds with NOT FOUND' do
+        it 'raises NotFoundError' do
           h = {
             'username' => @member.username,
             'recipients' => [
               {
                 'username' => 'recipient',
-                'public_key' => '69e2c3164868a8d9ba4c77db842553a13116bef8',
+                'origin'   => 'does.not.matter',
               },
             ],
             'text' => 'a direct message',
           }
-          @s.process "MESSAGE #{h.to_json}"
-          @s.should have_responded_with_code('NOT FOUND')
+          expect { subject.rsp_message(h) }.
+            to raise_error( Libertree::Server::NotFoundError )
         end
       end
 
@@ -85,19 +99,18 @@ describe Libertree::Server::Responder::Message do
           @member_local = @account.member
         end
 
-        it 'with valid data it responds with OK' do
+        it 'raises no errors with valid data' do
           h = {
             'username' => @member.username,
             'recipients' => [
               {
                 'username' => @member_local.username,
-                'public_key' => 'public-key-of-mock-server',
               },
             ],
             'text' => 'a direct message',
           }
-          @s.process "MESSAGE #{h.to_json}"
-          @s.should have_responded_with_code('OK')
+          expect { subject.rsp_message(h) }.
+            not_to raise_error
         end
       end
 
@@ -118,17 +131,16 @@ describe Libertree::Server::Responder::Message do
             'recipients' => [
               {
                 'username' => @member_local.username,
-                'public_key' => 'public-key-of-mock-server',
               },
               {
                 'username' => @member_remote.username,
-                'public_key' => @requester.public_key,
+                'origin'   => @member_remote.server.domain,
               },
             ],
             'text' => 'a direct message',
           }
-          @s.process "MESSAGE #{h.to_json}"
-          @s.should have_responded_with_code('OK')
+          expect { subject.rsp_message(h) }.
+            not_to raise_error
         end
       end
     end

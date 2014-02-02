@@ -3,27 +3,21 @@ module Libertree
     module Responder
       module Message
         def rsp_message(params)
-          return  if require_parameters(params, 'username', 'recipients', 'text')
+          require_parameters(params, 'username', 'recipients', 'text')
 
           begin
             sender_member = Model::Member[
               'username' => params['username'],
-              'server_id' => @server.id,
+              'server_id' => @remote_tree.id,
             ]
-            if sender_member.nil?
-              respond( {
-                'code' => 'NOT FOUND',
-                'message' => "Unrecognized member username: #{params['username'].inspect}"
-              } )
-              return
-            end
+            fail_if_nil sender_member, "Unrecognized member username: #{params['username'].inspect}"
 
             members = params['recipients'].reduce({:local => [], :remote => []}) { |ms, recipient|
-              origin = Model::Server[ 'public_key' => recipient['public_key'] ]
+              origin = Model::Server[ domain: recipient['origin'] ]
               if origin
                 member = Model::Member['username' => recipient['username'], 'server_id' => origin.id]
                 ms[:remote] << member  if member
-              elsif origin.nil? && recipient['public_key'] == @public_key
+              elsif origin.nil? && recipient['origin'] == Server.conf['domain']
                 # origin is this local server
                 account = Model::Account['username' => recipient['username']]
                 if account
@@ -55,21 +49,19 @@ module Libertree
                 )
             end
 
-            respond_with_code 'OK'
           rescue PGError => e
-            log "Error in rsp_message: #{e.message}"
-            respond_with_code 'ERROR'
+            fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
 
         # TODO
         # def rsp_message_delete(params)
-          # return  if require_parameters(params, 'id')
+          # require_parameters(params, 'id')
 
           # begin
             # # TODO
           # rescue PGError => e
-            # respond_with_code 'ERROR'
+            # fail InternalError, "Error in #{__method__}: #{e.message}", nil
           # end
         # end
       end

@@ -1,18 +1,30 @@
 require 'spec_helper'
 
 describe Libertree::Server::Responder::Chat do
+  subject {
+    Class.new.new
+  }
+
+  before :each do
+    subject.class.class_eval {
+      include Libertree::Server::Responder::Helper
+      include Libertree::Server::Responder::Chat
+    }
+  end
+
   describe 'rsp_chat' do
-    include_context 'with an INTRODUCEd and AUTHENTICATEd requester'
+    include_context 'requester in a forest'
 
     context 'and the responder has no record of the sending member' do
-      it 'responds with NOT FOUND' do
+      it 'raises NotFoundError' do
+        subject.instance_variable_set(:@remote_tree, @requester)
         h = {
           'username' => 'sender',
           'recipient_username' => 'recipient',
           'text' => 'a chat message',
         }
-        @s.process "CHAT #{h.to_json}"
-        @s.should have_responded_with_code('NOT FOUND')
+        expect { subject.rsp_chat(h) }.
+          to raise_error( Libertree::Server::NotFoundError )
       end
     end
 
@@ -21,9 +33,10 @@ describe Libertree::Server::Responder::Chat do
         @member = Libertree::Model::Member.create(
           FactoryGirl.attributes_for(:member, :server_id => @requester.id)
         )
+        subject.instance_variable_set(:@remote_tree, @requester)
       end
 
-      it 'and a parameter is missing or blank, it responds with MISSING PARAMETER' do
+      it 'raises MissingParameterError when a parameter is missing or blank' do
         h = {
           'username' => @member.username,
           'recipient_username' => 'recipient',
@@ -33,13 +46,13 @@ describe Libertree::Server::Responder::Chat do
         keys = h.keys
         keys.each do |key|
           h_ = h.reject { |k,v| k == key }
-          @s.process "CHAT #{h_.to_json}"
-          @s.should have_responded_with_code('MISSING PARAMETER')
+          expect { subject.rsp_chat(h_) }.
+            to raise_error( Libertree::Server::MissingParameterError )
 
           h_ = h.dup
           h_[key] = ''
-          @s.process "CHAT #{h_.to_json}"
-          @s.should have_responded_with_code('MISSING PARAMETER')
+          expect { subject.rsp_chat(h_) }.
+            to raise_error( Libertree::Server::MissingParameterError )
         end
       end
 
@@ -51,14 +64,14 @@ describe Libertree::Server::Responder::Chat do
           )
         end
 
-        it 'responds with NOT FOUND' do
+        it 'raises NotFoundError' do
           h = {
             'username' => @member.username,
             'recipient_username' => 'recipient',
             'text' => 'a chat message',
           }
-          @s.process "CHAT #{h.to_json}"
-          @s.should have_responded_with_code('NOT FOUND')
+          expect { subject.rsp_chat(h) }.
+            to raise_error( Libertree::Server::NotFoundError )
         end
       end
 
@@ -70,14 +83,14 @@ describe Libertree::Server::Responder::Chat do
           @member_local = @account.member
         end
 
-        it 'with valid data it responds with OK' do
+        it 'raises no errors with valid data' do
           h = {
             'username' => @member.username,
             'recipient_username' => @member_local.username,
             'text' => 'a chat message',
           }
-          @s.process "CHAT #{h.to_json}"
-          @s.should have_responded_with_code('OK')
+          expect { subject.rsp_chat(h) }.
+            not_to raise_error
         end
       end
     end

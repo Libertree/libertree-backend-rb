@@ -1,22 +1,32 @@
 require 'spec_helper'
 
 describe Libertree::Server::Responder::Member do
-  describe 'rsp_member_delete' do
-    include_context 'with an INTRODUCEd and AUTHENTICATEd requester'
+  subject {
+    Class.new.new
+  }
 
-    it 'with a missing username it responds with MISSING PARAMETER' do
+  before :each do
+    subject.class.class_eval {
+      include Libertree::Server::Responder::Helper
+      include Libertree::Server::Responder::Member
+    }
+  end
+
+  describe 'rsp_member_delete' do
+    include_context 'requester in a forest'
+
+    it 'raises MissingParameterError with a missing username' do
       h = { }
-      @s.process "MEMBER-DELETE #{h.to_json}"
-      @s.should have_responded_with_code('MISSING PARAMETER')
+      expect { subject.rsp_member_delete(h) }.
+        to raise_error( Libertree::Server::MissingParameterError )
     end
 
-
-    it 'with a blank username it responds with MISSING PARAMETER' do
+    it 'raises MissingParameterError with a blank username' do
       h = {
         'username' => '',
       }
-      @s.process "MEMBER-DELETE #{h.to_json}"
-      @s.should have_responded_with_code('MISSING PARAMETER')
+      expect { subject.rsp_member_delete(h) }.
+        to raise_error( Libertree::Server::MissingParameterError )
     end
 
     context 'given an existing member' do
@@ -24,15 +34,16 @@ describe Libertree::Server::Responder::Member do
         @member = Libertree::Model::Member.create(
           FactoryGirl.attributes_for(:member, :server_id => @requester.id)
         )
+        subject.instance_variable_set(:@remote_tree, @requester)
       end
 
-      it 'with valid data it responds with OK and deletes the local member record' do
+      it 'deletes the local member record and raises no errors with valid data' do
         username = @member.username
         h = {
           'username' => username,
         }
-        @s.process "MEMBER-DELETE #{h.to_json}"
-        @s.should have_responded_with_code('OK')
+        expect { subject.rsp_member_delete(h) }.
+          not_to raise_error
 
         Libertree::Model::Member[ :username => username ].should be_nil
       end
