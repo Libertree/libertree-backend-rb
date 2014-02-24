@@ -7,8 +7,8 @@ module Libertree
 
           begin
             member = Model::Member[
-              'username' => params['username'],
-              'server_id' => @remote_tree.id,
+              username:  params['username'],
+              server_id: @remote_tree.id,
             ]
             fail_if_nil member, "Unrecognized member username: #{params['username'].inspect}"
 
@@ -22,19 +22,17 @@ module Libertree
               # origin is supposedly this local server
               comment = Model::Comment[ params['comment_id'] ]
             else
-              comments = Model::Comment.where( remote_id: params['comment_id'] )
-              comments.reject! { |p|
-                p.member.server != origin
-              }
+              comments = Model::Comment.where( remote_id: params['comment_id'] ).
+                find_all {|c| c.member.server == origin }
               comment = comments[0]  # There should only be one or none
             end
 
             fail_if_nil comment, 'Unrecognized comment.'
 
             Model::CommentLike.find_or_create(
-              'member_id' => member.id,
-              'comment_id' => comment.id,
-              'remote_id' => params['id'],
+              member_id:  member.id,
+              comment_id: comment.id,
+              remote_id:  params['id'],
             )
           rescue PGError => e
             fail InternalError, "Error in #{__method__}: #{e.message}", nil
@@ -46,7 +44,7 @@ module Libertree
 
           begin
             likes = Model::CommentLike.
-              where( 'remote_id' => params['id'] ).
+              where( remote_id: params['id'] ).
               find_all { |like| like.member.server == @remote_tree }
 
             fail_if_nil likes[0], "Unrecognized like ID: #{params['id'].inspect}"

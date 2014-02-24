@@ -11,8 +11,8 @@ module Libertree
 
           begin
             member = Model::Member.find_or_create(
-              'username' => params['username'],
-              'server_id' => @remote_tree.id
+              username:  params['username'],
+              server_id: @remote_tree.id
             )
 
             profile = Libertree::Model::Profile.find_or_create( member_id: member.id )
@@ -20,14 +20,15 @@ module Libertree
             if params['profile']
               begin
                 profile.name_display = params['profile']['name_display']
-              rescue PGError => e
+                profile.description = params['profile']['description']
+                profile.save
+              rescue Sequel::CheckConstraintViolation, PGError => e
                 if e.message =~ /valid_name_display/
                   fail InternalError, "Invalid display name: #{params['profile']['name_display'].inspect}", nil
                 else
                   raise e
                 end
               end
-              profile.description = params['profile']['description']
             end
 
             # fetch avatar asynchronously
@@ -54,7 +55,7 @@ module Libertree
 
           begin
             members = Model::Member.
-              where( 'username' => params['username'] ).
+              where( username: params['username'] ).
               reject { |p| p.server != @remote_tree }
 
             fail_if_nil members[0], "Unrecognized username: #{params['username'].inspect}"
