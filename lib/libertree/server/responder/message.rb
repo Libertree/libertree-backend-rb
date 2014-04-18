@@ -30,9 +30,14 @@ module Libertree
             }
 
             member_ids = members.map(&:id)
+            if params['id']
+              remote_id = params['id'].to_i
+            end
+
             Libertree::Model::Message.create_with_recipients(
               sender_member_id: sender_member.id,
               text: params['text'],
+              remote_id: remote_id,
               recipient_member_ids: member_ids
             )
           rescue PGError => e
