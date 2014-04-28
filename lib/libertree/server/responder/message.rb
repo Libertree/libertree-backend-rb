@@ -44,17 +44,6 @@ module Libertree
             fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
-
-        # TODO
-        # def rsp_message_delete(params)
-          # require_parameters(params, 'id')
-
-          # begin
-            # # TODO
-          # rescue PGError => e
-            # fail InternalError, "Error in #{__method__}: #{e.message}", nil
-          # end
-        # end
       end
     end
   end
