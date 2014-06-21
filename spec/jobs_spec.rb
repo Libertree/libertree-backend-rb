@@ -45,6 +45,30 @@ describe Jobs do
     end
   end
 
+  describe Jobs::Email::Forward, "#perform" do
+    before :all do
+      @account = LM::Account.create(username: "libertreejobs",
+                                    email: "email@localhost",
+                                    password_encrypted: BCrypt::Password.create("1234"))
+      @message = LM::Message.create(sender_member_id: @account.member.id, text: 'test')
+    end
+    it 'triggers Jobs::Email::Simple.perform' do
+      expect( Jobs::Email::Simple ).to receive(:perform)
+      Jobs::Email::Simple.stub(:perform)
+      Jobs::Email::Forward.perform({ 'username'   => @account.username,
+                                     'message_id' => @message.id })
+    end
+
+    it 'raises JobInvalid if there is no email address' do
+      @account.email = nil
+      @account.save
+      expect {
+        Jobs::Email::Forward.perform({ 'username'   => @account.username,
+                                       'message_id' => @message.id })
+      }.to raise_exception(Libertree::JobInvalid)
+    end
+  end
+
   describe Jobs::Request do
     before :each do
       @client = double("Client")
