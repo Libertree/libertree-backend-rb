@@ -5,7 +5,7 @@ require_relative '../lib/jobs'
 
 describe Jobs do
   LM = Libertree::Model
-  before :each do
+  before :all do
     @server = LM::Server.create( FactoryGirl.attributes_for(:server) )
     @server.domain = "here"
     @other_server = LM::Server.create( FactoryGirl.attributes_for(:server) )

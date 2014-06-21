@@ -22,7 +22,7 @@ if ENV['LIBERTREE_ENV'] != 'test'
 end
 
 RSpec.configure do |config|
-  config.before(:each) do
+  config.before(:all) do
     Libertree::Model::Account.set_auth_settings(:default, nil)
     Libertree::Server.conf = {}
     Libertree::DB.dbh.execute "SET client_min_messages TO 'warning';"

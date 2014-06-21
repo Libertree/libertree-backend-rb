@@ -7,6 +7,8 @@ describe Libertree::Server::Api do
   before :each do
     @client = LSR.connection
     @client.stub :write
+  end
+  before :all do
     @gateway = "gateway.liber.tree"
     @jid = "tester@test.net"
     @account = Libertree::Model::Account.create({
