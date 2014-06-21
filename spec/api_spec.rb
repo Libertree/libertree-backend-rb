@@ -8,7 +8,6 @@ describe Libertree::Server::Api do
     @client = LSR.connection
     @client.stub :write
     @gateway = "gateway.liber.tree"
-    Libertree::DB.dbh.execute 'TRUNCATE accounts CASCADE'
     @jid = "tester@test.net"
     @account = Libertree::Model::Account.create({
       username: "username",

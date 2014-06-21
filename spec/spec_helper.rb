@@ -28,6 +28,8 @@ RSpec.configure do |config|
     Libertree::DB.dbh.execute "SET client_min_messages TO 'warning';"
     Libertree::DB.dbh.execute 'TRUNCATE posts CASCADE'
     Libertree::DB.dbh.execute 'TRUNCATE servers CASCADE'
+    Libertree::DB.dbh.execute 'TRUNCATE accounts CASCADE'
+    Libertree::DB.dbh.execute 'TRUNCATE members CASCADE'
   end
 end
 
