@@ -11,7 +11,7 @@ require 'uri'
 module Jobs
   def self.list
     {
-      "email"                        => Email,
+      "email"                        => Email::Simple,
       "http:avatar"                  => Http::Avatar,
       "http:embed"                   => Http::Embed,
       "post:add-to-rivers"           => Post::AddToRivers,
@@ -38,24 +38,29 @@ module Jobs
     }
   end
 
-  class Email
-    def self.from=(address)
-      @@from_address ||= address
-    end
-    def self.perform(params)
-      begin
-        GPGME::Engine.home_dir = Dir.tmpdir
-        Mail.deliver do
-          to       params['to']
-          from     @@from_address
-          subject  params['subject']
-          body     params['body']
-          if params['pubkey']
-            gpg encrypt: true, keys: { params['to'] => params['pubkey'] }
+  module Email
+    class Simple
+      def self.from=(address)
+        @@from_address ||= address
+      end
+      def self.perform(params)
+        begin
+          GPGME::Engine.home_dir = Dir.tmpdir
+          Mail.deliver do
+            to       params['to']
+            from     @@from_address
+            subject  params['subject']
+            body     params['body']
+            if params['pubkey']
+              gpg encrypt: true, keys: { params['to'] => params['pubkey'] }
+            end
           end
+        rescue Errno::ECONNRESET => e
+          raise Libertree::RetryJob, "Email: #{e.message}"
         end
-      rescue Errno::ECONNRESET => e
-        raise Libertree::RetryJob, "Email: #{e.message}"
+      end
+    end
+  end
       end
     end
   end
