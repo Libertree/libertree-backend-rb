@@ -12,10 +12,9 @@ describe Libertree::Server::Api do
     @jid = "tester@test.net"
     @account = Libertree::Model::Account.create({
       username: "username",
-      password_encrypted: BCrypt::Password.create("1234")
+      password_encrypted: BCrypt::Password.create("1234"),
+      gateway_jid: @jid
     })
-    @account.gateway_jid = @jid
-    @account.save
   end
 
   it 'performs Api.post on receiving a message starting with "POST"' do

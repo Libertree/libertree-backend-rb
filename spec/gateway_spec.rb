@@ -153,10 +153,9 @@ describe Libertree::Server::Gateway do
       @jid = "tester@test.net"
       @account = Libertree::Model::Account.create({
         username: "username",
-        password_encrypted: BCrypt::Password.create("1234")
+        password_encrypted: BCrypt::Password.create("1234"),
+        gateway_jid: @jid
       })
-      @account.gateway_jid = @jid
-      @account.save
     end
 
     it 'responds with the user record upon receiving an empty jabber:iq:register query' do
