@@ -76,7 +76,7 @@ module Jobs
           'body'    => "#{message.sender.handle} wrote:\n\n#{message.text}"
         }
         email_params['pubkey'] = account.pubkey  if account.pubkey
-        Email::Simple.perform(email_params.to_json)
+        Email::Simple.perform(email_params)
       end
     end
   end
