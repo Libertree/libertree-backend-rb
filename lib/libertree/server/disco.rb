@@ -14,8 +14,11 @@ module Libertree
         info = stanza.reply
         info.node = stanza.node
 
-        # when node=:rule, the identity is considered a proc to be evaluated for every node
-        info.identities = @@identities[stanza.node] + @@identities[:rule].map{|rule| rule.call(stanza.node)}.compact
+        # when node=:rule, the identity is considered a lambda to be evaluated for every node
+        info.identities = @@identities[stanza.node] +
+          @@identities[:rule].map {|rule|
+          Blather::Stanza::Iq::DiscoInfo::Identity.new(rule.call(stanza.node))
+        }.compact
         info.features = @@features[stanza.node]
 
         @client.write info
@@ -27,6 +30,9 @@ module Libertree
       end
 
       def self.register_identity(identity, node=nil)
+        if ! identity.kind_of?(Proc)
+          identity = Blather::Stanza::Iq::DiscoInfo::Identity.new(identity)
+        end
         @@identities[node] << identity
       end
 
