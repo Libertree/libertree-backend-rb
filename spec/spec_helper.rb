@@ -25,11 +25,6 @@ RSpec.configure do |config|
   config.before(:all) do
     Libertree::Model::Account.set_auth_settings(:default, nil)
     Libertree::Server.conf = {}
-    Libertree::DB.dbh.execute "SET client_min_messages TO 'warning';"
-    Libertree::DB.dbh.execute 'TRUNCATE posts CASCADE'
-    Libertree::DB.dbh.execute 'TRUNCATE servers CASCADE'
-    Libertree::DB.dbh.execute 'TRUNCATE accounts CASCADE'
-    Libertree::DB.dbh.execute 'TRUNCATE members CASCADE'
   end
 end
 
