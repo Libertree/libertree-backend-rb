@@ -7,18 +7,15 @@ module Libertree
       extend Libertree::Server::Responder::Helper
 
       private
-      @@identities = {}
-      @@features = {}
-
       def self.disco_info(stanza)
         info = stanza.reply
         info.node = stanza.node
 
         # when node=:rule, the identity is considered a lambda to be evaluated for every node
         info.identities = @@identities[stanza.node] +
-          @@identities[:rule].map {|rule|
-          Blather::Stanza::Iq::DiscoInfo::Identity.new(rule.call(stanza.node))
-        }.compact
+          @@identities[:rule].map {|rule| rule.call(stanza.node)}.compact.map {|id|
+          Blather::Stanza::Iq::DiscoInfo::Identity.new(id)
+        }
         info.features = @@features[stanza.node]
 
         @client.write info
@@ -30,6 +27,7 @@ module Libertree
       end
 
       def self.register_identity(identity, node=nil)
+        return  unless identity
         if ! identity.kind_of?(Proc)
           identity = Blather::Stanza::Iq::DiscoInfo::Identity.new(identity)
         end
@@ -41,7 +39,10 @@ module Libertree
         @client = client
 
         # return a new empty array for each unknown key
+        @@identities = {}
         @@identities.default_proc = proc {|h,k| h[k] = []}
+
+        @@features = {}
         @@features.default_proc = proc {|h,k| h[k] = []}
 
         self.register_feature "http://jabber.org/protocol/disco#info"
