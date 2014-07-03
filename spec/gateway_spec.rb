@@ -21,8 +21,8 @@ describe Libertree::Server::Gateway do
                            :ns => ns) ).not_to be_empty
 
       features = stanza.xpath('.//ns:feature/@var', :ns => ns).map(&:value)
-      expect( features ).to match_array([ 'http://jabber.org/protocol/disco#info',
-                                          'jabber:iq:register' ])
+      expect( features ).to include('http://jabber.org/protocol/disco#info',
+                                    'jabber:iq:register')
     end
     @client.handle_data msg
   end
