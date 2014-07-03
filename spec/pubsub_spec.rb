@@ -6,12 +6,13 @@ describe Libertree::Server::PubSub do
   before :each do
     @client = LSR.connection
     @client.stub :write
-    Libertree::Server::PubSub.init(@client, 'pubsub.liber.tree')
+    @jid = 'pubsub.liber.tree'
+    Libertree::Server::PubSub.init(@client, @jid)
   end
 
   it 'advertises pubsub service' do
     msg = Blather::Stanza::Iq::DiscoInfo.new
-    msg.to = @gateway
+    msg.to = @jid
     ns = msg.class.registered_ns
 
     expect( @client ).to receive(:write) do |stanza|
@@ -52,7 +53,7 @@ describe Libertree::Server::PubSub do
 
     collection_nodes.each do |node|
       msg = Blather::Stanza::Iq::DiscoInfo.new
-      msg.to = @gateway
+      msg.to = @jid
       msg.node = node
       ns = msg.class.registered_ns
 
@@ -67,7 +68,7 @@ describe Libertree::Server::PubSub do
 
     leaf_nodes.each do |node|
       msg = Blather::Stanza::Iq::DiscoInfo.new
-      msg.to = @gateway
+      msg.to = @jid
       msg.node = node
       ns = msg.class.registered_ns
 
