@@ -3,8 +3,6 @@ require 'spec_helper'
 require 'libertree/client'
 
 describe Libertree::Server::Gateway do
-  LSR = Libertree::Server::Responder
-
   before :each do
     @client = LSR.connection
     @client.stub :write

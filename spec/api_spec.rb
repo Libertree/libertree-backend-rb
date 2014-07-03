@@ -2,8 +2,6 @@ require 'blather'
 require 'spec_helper'
 
 describe Libertree::Server::Api do
-  LSR = Libertree::Server::Responder
-
   before :each do
     @client = LSR.connection
     @client.stub :write

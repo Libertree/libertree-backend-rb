@@ -33,6 +33,8 @@ RSpec.configure do |config|
   end
 end
 
+LSR = Libertree::Server::Responder
+
 shared_context 'requester not in any forest' do
   before :each do
     @requester = Libertree::Model::Server.create( FactoryGirl.attributes_for(:server) )
