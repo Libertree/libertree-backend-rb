@@ -31,6 +31,7 @@ Mail.defaults do
     :password             => jobp.conf['smtp']['password'],
     :authentication       => jobp.conf['smtp']['authentication'],
     :domain               => jobp.conf['smtp']['helo_domain'],
+    :ssl                  => jobp.conf['smtp']['ssl'],
     :enable_starttls_auto => jobp.conf['smtp']['starttls_auto'],
   }
 end
