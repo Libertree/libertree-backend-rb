@@ -11,13 +11,22 @@ module Libertree
         info = stanza.reply
         info.node = stanza.node
 
-        # when node=:rule, the identity is considered a lambda to be evaluated for every node
-        info.identities = @@identities[stanza.node] +
-          @@identities[:rule].map {|rule| rule.call(stanza.node)}.compact.map {|id|
-          Blather::Stanza::Iq::DiscoInfo::Identity.new(id)
-        }
-        info.features = @@features[stanza.node]
+        _identities = @@identities[stanza.node]
+        _features = @@features[stanza.node]
 
+        # evaluate rules to get dynamic features and identities
+        @@rules.each do |rule|
+          identity, features = rule.call(stanza.node)
+          if identity
+            _identities << Blather::Stanza::Iq::DiscoInfo::Identity.new(identity)
+          end
+          if (features && ! features.empty?)
+            _features << features
+          end
+        end
+
+        info.identities = _identities
+        info.features = _features
         @client.write info
       end
 
@@ -28,15 +37,19 @@ module Libertree
 
       def self.register_identity(identity, node=nil)
         return  unless identity
-        if ! identity.kind_of?(Proc)
-          identity = Blather::Stanza::Iq::DiscoInfo::Identity.new(identity)
-        end
         @@identities[node] << identity
+      end
+
+      def self.register_dynamic_node_info(proc)
+        @@rules << proc
       end
 
       def self.init(client)
         # set @client for the `respond` helper method
         @client = client
+
+        # rules for dynamic node-based identities / features
+        @@rules = []
 
         # return a new empty array for each unknown key
         @@identities = {}

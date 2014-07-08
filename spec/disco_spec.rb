@@ -29,35 +29,41 @@ describe Libertree::Server::Disco do
       end
       @client.handle_data msg
     end
+  end
 
-    it 'supports dynamic identities' do
+  describe 'register_dynamic_node_info' do
+    it 'supports dynamic identities and features' do
       msg = Blather::Stanza::Iq::DiscoInfo.new
       msg.to = @jid
       ns = msg.class.registered_ns
 
       identity_rule = lambda do |node_path|
         if node_path
-          {
-            :name => 'with node path',
-            :type => 'test',
-            :category => 'test'
-          }
+          [{
+             :name => 'with node path',
+             :type => 'test',
+             :category => 'test'
+           },
+           ['feature-with-node-path']]
         else
-          {
-            :name => 'without node path',
-            :type => 'test',
-            :category => 'test'
-          }
+          [{
+             :name => 'without node path',
+             :type => 'test',
+             :category => 'test'
+           },
+           ['feature-without-node-path']]
         end
       end
-      Disco.register_identity(identity_rule, :rule)
+      Disco.register_dynamic_node_info(identity_rule)
 
       expect( @client ).to receive(:write) do |stanza|
         # upstream bug: stanza.identities and stanza.features always
         # returns an empty array
         expect( stanza.xpath('.//ns:identity[@name="without node path" and @type="test" and @category="test"]',
                              :ns => ns) ).not_to be_empty
-      end
+        features = stanza.xpath('.//ns:feature/@var', :ns => ns).map(&:value)
+        expect( features ).to include('feature-without-node-path')
+       end
       @client.handle_data msg
 
       msg.node = 'a-pubsub-node-path'
@@ -66,6 +72,8 @@ describe Libertree::Server::Disco do
         # returns an empty array
         expect( stanza.xpath('.//ns:identity[@name="with node path" and @type="test" and @category="test"]',
                              :ns => ns) ).not_to be_empty
+        features = stanza.xpath('.//ns:feature/@var', :ns => ns).map(&:value)
+        expect( features ).to include('feature-with-node-path')
       end
       @client.handle_data msg
     end
