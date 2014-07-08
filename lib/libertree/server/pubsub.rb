@@ -65,21 +65,23 @@ module Libertree
           return  unless path
           res = path.match %r{^/users/(?<username>[^/]+)(/springs)?$}
           if res && Libertree::Model::Account[ username: res[:username] ]
-            return {
-              :type => 'collection',
-              :category => 'pubsub'
-            }
+            return [{ :type => 'collection',
+                      :category => 'pubsub'
+                    }, []]
           end
 
           res = path.match %r{^/users/(?<username>[^/]+)/(posts|springs/\d+)$}
           if res && Libertree::Model::Account[ username: res[:username] ]
-            return {
-              :type => 'leaf',
-              :category => 'pubsub'
-            }
+            return [{ :type => 'leaf',
+                      :category => 'pubsub'
+                    },
+                    [
+                     'http://jabber.org/protocol/disco#items',
+                     'http://jabber.org/protocol/pubsub',
+                    ]]
           end
         end
-        Disco.register_identity(nested_nodes_rule, :rule)
+        Disco.register_dynamic_node_info nested_nodes_rule
        end
 
       def self.user_path(username, &blk)
