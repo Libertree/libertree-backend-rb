@@ -32,6 +32,7 @@ module Libertree
 
       public
       def self.register_feature(feature, node=nil)
+        return  unless feature
         @@features[node] << feature
       end
 
