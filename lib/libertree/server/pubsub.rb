@@ -50,9 +50,11 @@ module Libertree
         Disco.register_identity({ :name => 'Libertree PubSub',
                                   :type => 'service',
                                   :category => 'pubsub' })
-        Disco.register_feature 'http://jabber.org/protocol/pubsub'
-        Disco.register_feature 'http://jabber.org/protocol/disco#items'
 
+        features = [ 'http://jabber.org/protocol/disco#items',
+                     'http://jabber.org/protocol/pubsub' ]
+
+        features.each {|f| Disco.register_feature f }
         # rules for nested nodes
         nested_nodes_rule = lambda do |path|
           return  unless path
@@ -61,7 +63,7 @@ module Libertree
               (res && Libertree::Model::Account[ username: res[:username] ])
             return [{ :type => 'collection',
                       :category => 'pubsub'
-                    }, []]
+                    }, features ]
           end
 
           res = path.match %r{^/users/(?<username>[^/]+)/(posts|springs/\d+)$}
@@ -69,11 +71,7 @@ module Libertree
               (res && Libertree::Model::Account[ username: res[:username] ])
             return [{ :type => 'leaf',
                       :category => 'pubsub'
-                    },
-                    [
-                     'http://jabber.org/protocol/disco#items',
-                     'http://jabber.org/protocol/pubsub',
-                    ]]
+                    }, features ]
           end
         end
         Disco.register_dynamic_node_info nested_nodes_rule
