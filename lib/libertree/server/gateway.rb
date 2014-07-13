@@ -7,9 +7,9 @@ module Libertree
 
       private
       def self.init_disco_info
-         Libertree::Server::Disco.register_identity({ :name => 'Libertree Gateway',
-                                                      :type => 'libertree',
-                                                      :category => 'gateway' })
+        Libertree::Server::Disco.register_identity({ :name => 'Libertree Gateway',
+                                                     :type => 'libertree',
+                                                     :category => 'gateway' })
         Libertree::Server::Disco.register_feature "jabber:iq:register"
       end
 
