@@ -51,7 +51,8 @@ module Libertree
           'http://jabber.org/protocol/pubsub' ]
 
       def self.node_identities_features(path)
-        return  unless path
+        return [{}, []] unless path
+
         res = path.match %r{^/users/(?<username>[^/]+)(/springs)?$}
         if ['/users', '/groups'].include?(path) ||
             (res && Libertree::Model::Account[ username: res[:username] ])
@@ -67,6 +68,9 @@ module Libertree
                     :category => 'pubsub'
                   }, @features ]
         end
+
+        # no identities, no features
+        return [{}, []]
       end
 
       def self.init_disco_info
