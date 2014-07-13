@@ -29,12 +29,7 @@ describe Libertree::Server::PubSub do
   end
 
   it 'reports collection or leaf info for pubsub nodes' do
-    # TODO: create dummy account with spring and test posts
-    Libertree::DB.dbh.execute 'TRUNCATE accounts CASCADE'
-    account = Libertree::Model::Account.create({
-      username: "username",
-      password_encrypted: BCrypt::Password.create("1234")
-    })
+    account = Libertree::Model::Account.create(FactoryGirl.attributes_for(:account))
     spring = Libertree::Model::Pool.create(
       FactoryGirl.attributes_for(:pool, member_id: account.member.id, sprung: true, name: 'whocares')
     )
