@@ -46,35 +46,37 @@ module Libertree
       #     ...
 
       private
+      @features =
+        [ 'http://jabber.org/protocol/disco#items',
+          'http://jabber.org/protocol/pubsub' ]
+
+      def self.node_identities_features(path)
+        return  unless path
+        res = path.match %r{^/users/(?<username>[^/]+)(/springs)?$}
+        if ['/users', '/groups'].include?(path) ||
+            (res && Libertree::Model::Account[ username: res[:username] ])
+          return [{ :type => 'collection',
+                    :category => 'pubsub'
+                  }, @features ]
+        end
+
+        res = path.match %r{^/users/(?<username>[^/]+)/(posts|springs/\d+)$}
+        if path == '/posts' ||
+            (res && Libertree::Model::Account[ username: res[:username] ])
+          return [{ :type => 'leaf',
+                    :category => 'pubsub'
+                  }, @features ]
+        end
+      end
+
       def self.init_disco_info
+        # register identity and features of root node
         Disco.register_identity({ :name => 'Libertree PubSub',
                                   :type => 'service',
                                   :category => 'pubsub' })
+        @features.each {|f| Disco.register_feature f }
 
-        features = [ 'http://jabber.org/protocol/disco#items',
-                     'http://jabber.org/protocol/pubsub' ]
-
-        features.each {|f| Disco.register_feature f }
-        # rules for nested nodes
-        nested_nodes_rule = lambda do |path|
-          return  unless path
-          res = path.match %r{^/users/(?<username>[^/]+)(/springs)?$}
-          if ['/users', '/groups'].include?(path) ||
-              (res && Libertree::Model::Account[ username: res[:username] ])
-            return [{ :type => 'collection',
-                      :category => 'pubsub'
-                    }, features ]
-          end
-
-          res = path.match %r{^/users/(?<username>[^/]+)/(posts|springs/\d+)$}
-          if path == '/posts' ||
-              (res && Libertree::Model::Account[ username: res[:username] ])
-            return [{ :type => 'leaf',
-                      :category => 'pubsub'
-                    }, features ]
-          end
-        end
-        Disco.register_dynamic_node_info nested_nodes_rule
+        Disco.register_dynamic_node_info method(:node_identities_features)
        end
 
       def self.user_path(username, &blk)
