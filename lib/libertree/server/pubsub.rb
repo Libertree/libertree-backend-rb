@@ -53,25 +53,20 @@ module Libertree
         Disco.register_feature 'http://jabber.org/protocol/pubsub'
         Disco.register_feature 'http://jabber.org/protocol/disco#items'
 
-        [ ['/users',  'collection'],
-          ['/groups', 'collection'],
-          ['/posts',  'leaf']
-        ].each do |pair|
-          Disco.register_identity({ :type => pair.last, :category => 'pubsub' }, pair.first)
-        end
-
         # rules for nested nodes
         nested_nodes_rule = lambda do |path|
           return  unless path
           res = path.match %r{^/users/(?<username>[^/]+)(/springs)?$}
-          if res && Libertree::Model::Account[ username: res[:username] ]
+          if ['/users', '/groups'].include?(path) ||
+              (res && Libertree::Model::Account[ username: res[:username] ])
             return [{ :type => 'collection',
                       :category => 'pubsub'
                     }, []]
           end
 
           res = path.match %r{^/users/(?<username>[^/]+)/(posts|springs/\d+)$}
-          if res && Libertree::Model::Account[ username: res[:username] ]
+          if path == '/posts' ||
+              (res && Libertree::Model::Account[ username: res[:username] ])
             return [{ :type => 'leaf',
                       :category => 'pubsub'
                     },
