@@ -48,7 +48,8 @@ module Libertree
       private
       @features =
         [ 'http://jabber.org/protocol/disco#items',
-          'http://jabber.org/protocol/pubsub' ]
+          'http://jabber.org/protocol/pubsub',
+          'http://jabber.org/protocol/pubsub#retrieve-subscriptions' ]
 
       def self.node_identities_features(path)
         return [{}, []] unless path
@@ -145,6 +146,53 @@ module Libertree
         Blather::Stanza::DiscoItems.new(:result, node_path, items).children
       end
 
+      def self.retrieve_subscriptions(stanza)
+        subs = []
+
+        # TODO: upstream bug: stanza.subscriptions duplicates the node
+        # node_name = stanza.subscriptions.attr('node')
+        ns = Blather::Stanza::PubSub::Subscriptions.new.class.registered_ns
+        node_name  = stanza.pubsub.find_first('ns:subscriptions', ns: ns).attr('node')
+
+        if node_name
+          node = Libertree::Model::Node[ address: node_name ]
+
+          # fail if node doesn't exist
+          # or if node exists but has no such feature
+          unless node && self.node_identities_features(node_name).last.
+              include?('http://jabber.org/protocol/pubsub#retrieve-subscriptions')
+            unsup = Nokogiri::XML::Builder.new {|x|
+              x.send('unsupported', {
+                       xmlns: 'http://jabber.org/protocol/pubsub#errors',
+                       feature: 'retrieve-subscriptions'
+                     })
+            }.doc.root
+            err = Blather::StanzaError.new(stanza, 'feature-not-implemented', 'cancel', nil, [unsup])
+            @client.write err.to_node
+            return
+          end
+
+          subs = node.subs(stanza.from.stripped)
+        else
+          # return all subs if no node is requested
+          subs = Libertree::Model::NodeSubscription.for(stanza.from.stripped)
+        end
+
+        response = Blather::Stanza::PubSub::Subscriptions.new(:result)
+        # TODO: upstream bug: response.subscriptions duplicates the node
+        # parent = response.subscriptions
+        parent = response.pubsub.find_first('ns:subscriptions', ns: response.class.registered_ns)
+
+        subs.each do |sub|
+          child = Blather::Stanza::PubSub::Subscription.
+            new(:result, @jid, sub.node.address, sub.jid, sub.sub_id, sub.state.to_sym).
+            subscription_node
+          parent.add_child(child)
+          child.namespace = response.class.registered_ns
+        end
+        respond to: stanza, with: response.pubsub
+      end
+
       public
       def self.init(client, jid)
         init_disco_info
@@ -158,6 +206,10 @@ module Libertree
           else
             @client.write Blather::StanzaError.new(stanza, 'service-unavailable', 'cancel').to_node
           end
+        end
+
+        client.register_handler :pubsub_subscriptions do |stanza|
+          self.retrieve_subscriptions(stanza)
         end
      end
     end
