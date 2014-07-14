@@ -17,7 +17,7 @@ module Libertree
         # evaluate rules to get dynamic features and identities
         @@rules.each do |rule|
           identity, features = rule.call(stanza.node)
-          if identity
+          if (identity && ! identity.empty?)
             _identities << Blather::Stanza::Iq::DiscoInfo::Identity.new(identity)
           end
           if (features && ! features.empty?)
