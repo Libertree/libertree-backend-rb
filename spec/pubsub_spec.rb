@@ -16,14 +16,15 @@ describe Libertree::Server::PubSub do
     ns = msg.class.registered_ns
 
     expect( @client ).to receive(:write) do |stanza|
-      # upstream bug: stanza.identities and stanza.features always
-      # returns an empty array
-      expect( stanza.xpath('.//ns:identity[@name="Libertree PubSub" and @type="service" and @category="pubsub"]',
-                           :ns => ns) ).not_to be_empty
+      # TODO: upstream bug: stanza.identities and stanza.features
+      # always returns an empty array, unless inherited
+      stanza = Blather::Stanza::Iq::DiscoInfo.new.inherit stanza
+      identity = Blather::Stanza::Iq::DiscoInfo::Identity.
+        new({ name: "Libertree PubSub", type: "service", category: "pubsub" })
+      expect( stanza.identities ).to include(identity)
 
-      features = stanza.xpath('.//ns:feature/@var', :ns => ns).map(&:value)
-      expect( features ).to include('http://jabber.org/protocol/pubsub',
-                                    'http://jabber.org/protocol/disco#items')
+      expect( stanza.features.map(&:var) ).to include('http://jabber.org/protocol/pubsub',
+                                                      'http://jabber.org/protocol/disco#items')
     end
     @client.handle_data msg
   end
@@ -50,13 +51,14 @@ describe Libertree::Server::PubSub do
       msg = Blather::Stanza::Iq::DiscoInfo.new
       msg.to = @jid
       msg.node = node
-      ns = msg.class.registered_ns
 
       expect( @client ).to receive(:write) do |stanza|
-        # upstream bug: stanza.identities and stanza.features always
-        # returns an empty array
-        expect( stanza.xpath('.//ns:identity[@type="collection" and @category="pubsub"]',
-                             :ns => ns) ).not_to be_empty
+        # TODO: upstream bug: stanza.identities and stanza.features
+        # always returns an empty array, unless inherited
+        stanza = Blather::Stanza::Iq::DiscoInfo.new.inherit stanza
+        identity = Blather::Stanza::Iq::DiscoInfo::Identity.
+          new({ type: "collection", category: "pubsub" })
+        expect( stanza.identities ).to include(identity)
       end
       @client.handle_data msg
     end
@@ -65,16 +67,17 @@ describe Libertree::Server::PubSub do
       msg = Blather::Stanza::Iq::DiscoInfo.new
       msg.to = @jid
       msg.node = node
-      ns = msg.class.registered_ns
 
       expect( @client ).to receive(:write) do |stanza|
-        # upstream bug: stanza.identities and stanza.features always
-        # returns an empty array
-        expect( stanza.xpath('.//ns:identity[@type="leaf" and @category="pubsub"]',
-                             :ns => ns) ).not_to be_empty
+        # TODO: upstream bug: stanza.identities and stanza.features
+        # always returns an empty array, unless inherited
+        stanza = Blather::Stanza::Iq::DiscoInfo.new.inherit stanza
+        identity = Blather::Stanza::Iq::DiscoInfo::Identity.
+          new({ type: "leaf", category: "pubsub" })
+        expect( stanza.identities ).to include(identity)
       end
       @client.handle_data msg
-     end
+    end
 
   end
 end
