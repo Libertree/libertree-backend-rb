@@ -52,6 +52,21 @@ module Libertree
           'http://jabber.org/protocol/pubsub#retrieve-subscriptions',
           'http://jabber.org/protocol/pubsub#retrieve-affiliations' ]
 
+      def self.check_pubsub_feature(node, stanza, feature)
+        # fail if node doesn't exist
+        # or if node exists but has no such feature
+        unless node && self.node_identities_features(node.address).last.
+            include?("http://jabber.org/protocol/pubsub##{feature}")
+          unsup = Nokogiri::XML::Builder.new {|x|
+            x.send('unsupported', {
+                     xmlns: 'http://jabber.org/protocol/pubsub#errors',
+                     feature: feature
+                   })
+          }.doc.root
+          Blather::StanzaError.new(stanza, 'feature-not-implemented', 'cancel', nil, [unsup])
+        end
+      end
+
       def self.node_identities_features(path)
         return [{}, []] unless path
 
@@ -157,18 +172,7 @@ module Libertree
 
         if node_name
           node = Libertree::Model::Node[ address: node_name, server_id: nil ]
-
-          # fail if node doesn't exist
-          # or if node exists but has no such feature
-          unless node && self.node_identities_features(node_name).last.
-              include?('http://jabber.org/protocol/pubsub#retrieve-subscriptions')
-            unsup = Nokogiri::XML::Builder.new {|x|
-              x.send('unsupported', {
-                       xmlns: 'http://jabber.org/protocol/pubsub#errors',
-                       feature: 'retrieve-subscriptions'
-                     })
-            }.doc.root
-            err = Blather::StanzaError.new(stanza, 'feature-not-implemented', 'cancel', nil, [unsup])
+          if err = self.check_pubsub_feature(node, stanza, 'retrieve-subscriptions')
             @client.write err.to_node
             return
           end
@@ -200,18 +204,7 @@ module Libertree
 
         if node_name
           node = Libertree::Model::Node[ address: node_name, server_id: nil ]
-
-          # fail if node doesn't exist
-          # or if node exists but has no such feature
-          unless node && self.node_identities_features(node_name).last.
-              include?('http://jabber.org/protocol/pubsub#retrieve-affiliations')
-            unsup = Nokogiri::XML::Builder.new {|x|
-              x.send('unsupported', {
-                       xmlns: 'http://jabber.org/protocol/pubsub#errors',
-                       feature: 'retrieve-affiliations'
-                     })
-            }.doc.root
-            err = Blather::StanzaError.new(stanza, 'feature-not-implemented', 'cancel', nil, [unsup])
+          if err = self.check_pubsub_feature(node, stanza, 'retrieve-affiliations')
             @client.write err.to_node
             return
           end
