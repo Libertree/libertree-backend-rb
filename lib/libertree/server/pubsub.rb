@@ -216,8 +216,6 @@ module Libertree
         end
 
         response = Blather::Stanza::PubSub::Affiliations.new(:result)
-        ns = response.class.registered_ns
-
         affs.each do |aff|
           child = Nokogiri::XML::Builder.new {|x|
             x.send('affiliation', {node: aff.node.address, affiliation: aff.affiliation})
