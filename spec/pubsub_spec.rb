@@ -10,6 +10,11 @@ describe Libertree::Server::PubSub do
     Libertree::Server::PubSub.init(@client, @jid)
   end
 
+  before :all do
+    @node_1 = Libertree::Model::Node.create( FactoryGirl.attributes_for(:node, address: '/posts') )
+    @node_2 = Libertree::Model::Node.create( FactoryGirl.attributes_for(:node, address: '/groups') )
+  end
+
   it 'advertises pubsub service' do
     msg = Blather::Stanza::Iq::DiscoInfo.new
     msg.to = @jid
@@ -82,8 +87,6 @@ describe Libertree::Server::PubSub do
 
   describe 'retrieve_subscriptions' do
     before :all do
-      @node_1 = Libertree::Model::Node.create( FactoryGirl.attributes_for(:node, address: '/posts') )
-      @node_2 = Libertree::Model::Node.create( FactoryGirl.attributes_for(:node, address: '/groups') )
       @example_subs = []
       @other_subs = []
 
@@ -164,4 +167,64 @@ describe Libertree::Server::PubSub do
       @client.handle_data msg
     end
   end
+
+  describe 'retrieve_affiliations' do
+    before :all do
+      @example_affs = []
+      @other_affs = []
+
+      [ @node_1, @node_2 ].each do |node|
+        [ 'a', 'b', 'c' ].each do |jid|
+          aff = Libertree::Model::NodeAffiliation.
+            create(FactoryGirl.attributes_for(:node_affiliation,
+                                              jid: "#{jid}@example.localdomain",
+                                              node_id: node.id))
+          @example_affs << aff
+        end
+      end
+
+      [ @node_1, @node_2 ].each do |node|
+        [ 'x', 'y', 'z' ].each do |jid|
+          aff = Libertree::Model::NodeAffiliation.
+            create(FactoryGirl.attributes_for(:node_affiliation,
+                                              jid: "#{jid}@other.domain",
+                                              node_id: node.id))
+          @other_affs << aff
+        end
+      end
+    end
+
+    it 'fails with unsupported error if an unknown node is queried' do
+      msg = Blather::Stanza::PubSub::Affiliations.new(:get, @jid)
+      msg.affiliations.write_attr('node', 'this-node-does-not-exist')
+      msg.from = 'some@jid'
+
+      expect( @client ).to receive(:write) do |stanza|
+        expect( stanza.to_s ).to match(%r{feature-not-implemented})
+      end
+      @client.handle_data msg
+    end
+
+    it 'returns all affiliations for a given jid if the requester is a jid and no node has been passed' do
+      msg = Blather::Stanza::PubSub::Affiliations.new(:get, @jid)
+      msg.from = 'a@example.localdomain'
+
+      expect( @client ).to receive(:write) do |stanza|
+        expect( stanza.list.values.flatten.count ).to eq(2) # all affiliations by a@example.localdomain
+      end
+      @client.handle_data msg
+    end
+
+    it 'returns all affiliations for a given jid and node if the requester is a jid and a node has been passed' do
+      msg = Blather::Stanza::PubSub::Affiliations.new(:get, @jid)
+      msg.from = 'a@example.localdomain'
+      msg.affiliations.write_attr('node', @node_1.address)
+
+      expect( @client ).to receive(:write) do |stanza|
+        expect( stanza.list.values.flatten.count ).to eq(1) # all affiliations on node_1 for a@example.localdomain
+      end
+      @client.handle_data msg
+    end
+  end
+
 end

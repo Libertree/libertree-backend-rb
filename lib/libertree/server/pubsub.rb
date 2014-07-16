@@ -49,7 +49,8 @@ module Libertree
       @features =
         [ 'http://jabber.org/protocol/disco#items',
           'http://jabber.org/protocol/pubsub',
-          'http://jabber.org/protocol/pubsub#retrieve-subscriptions' ]
+          'http://jabber.org/protocol/pubsub#retrieve-subscriptions',
+          'http://jabber.org/protocol/pubsub#retrieve-affiliations' ]
 
       def self.node_identities_features(path)
         return [{}, []] unless path
@@ -193,6 +194,47 @@ module Libertree
         respond to: stanza, with: response.pubsub
       end
 
+      def self.retrieve_affiliations(stanza)
+        affs = []
+        node_name = stanza.affiliations.attr('node')
+
+        if node_name
+          node = Libertree::Model::Node[ address: node_name, server_id: nil ]
+
+          # fail if node doesn't exist
+          # or if node exists but has no such feature
+          unless node && self.node_identities_features(node_name).last.
+              include?('http://jabber.org/protocol/pubsub#retrieve-affiliations')
+            unsup = Nokogiri::XML::Builder.new {|x|
+              x.send('unsupported', {
+                       xmlns: 'http://jabber.org/protocol/pubsub#errors',
+                       feature: 'retrieve-affiliations'
+                     })
+            }.doc.root
+            err = Blather::StanzaError.new(stanza, 'feature-not-implemented', 'cancel', nil, [unsup])
+            @client.write err.to_node
+            return
+          end
+
+          affs = node.affiliations.where(jid: stanza.from.stripped.to_s)
+        else
+          # return all affiliations if no node is requested
+          affs = Libertree::Model::NodeAffiliation.where(jid: stanza.from.stripped.to_s)
+        end
+
+        response = Blather::Stanza::PubSub::Affiliations.new(:result)
+        ns = response.class.registered_ns
+
+        affs.each do |aff|
+          child = Nokogiri::XML::Builder.new {|x|
+            x.send('affiliation', {node: aff.node.address, affiliation: aff.affiliation})
+          }.doc.root
+          response.affiliations << child
+        end
+
+        respond to: stanza, with: response.pubsub
+      end
+
       public
       def self.init(client, jid)
         init_disco_info
@@ -210,6 +252,10 @@ module Libertree
 
         client.register_handler :pubsub_subscriptions do |stanza|
           self.retrieve_subscriptions(stanza)
+        end
+
+        client.register_handler :pubsub_affiliations do |stanza|
+          self.retrieve_affiliations(stanza)
         end
      end
     end

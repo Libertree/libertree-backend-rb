@@ -58,4 +58,8 @@ FactoryGirl.define do
     sequence(:sub_id) { |n| "sub-id-#{n}" }
     state 'subscribed'
   end
+
+  factory :node_affiliation, :class => Libertree::Model::NodeAffiliation do
+    affiliation 'member'
+  end
 end
