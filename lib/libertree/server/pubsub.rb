@@ -156,7 +156,7 @@ module Libertree
         node_name  = stanza.pubsub.find_first('ns:subscriptions', ns: ns).attr('node')
 
         if node_name
-          node = Libertree::Model::Node[ address: node_name ]
+          node = Libertree::Model::Node[ address: node_name, server_id: nil ]
 
           # fail if node doesn't exist
           # or if node exists but has no such feature
