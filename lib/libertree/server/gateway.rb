@@ -88,6 +88,9 @@ module Libertree
         if account
           account.gateway_jid = nil
           account.save
+          # distribute member record with gateway_jid
+          account.member.gateway_jid = nil
+          account.member.save
         end
         @client.write stanza.reply!
 
