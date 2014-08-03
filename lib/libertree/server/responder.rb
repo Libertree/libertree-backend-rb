@@ -93,7 +93,7 @@ module Libertree
 
       message :chat? do |stanza|
         # Is the sender registered with the gateway?
-        account = Libertree::Model::Account[ gateway_jid: stanza.from.to_s ]
+        account = Libertree::Model::Account[ gateway_jid: stanza.from.stripped.to_s ]
         if account
           sender_username = account.username
           recipient = Libertree::Model::Account[ username: stanza.to.node.to_s ]
