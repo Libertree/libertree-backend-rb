@@ -6,15 +6,16 @@ GIT
 
 GIT
   remote: git://github.com/Libertree/libertree-model-rb.git
-  revision: f7cadc4afb7e3f1a5eea09c46938e27cbe5ec3a1
+  revision: d0184d87b54007ae98f2a3730259dfa36dc123a0
   specs:
-    libertree-model (0.7.0)
+    libertree-model (0.8.4)
       bcrypt-ruby (= 3.0.1)
       net-ldap (~> 0.5.1)
       nokogiri (~> 1.5)
       pg
       ruby-oembed (~> 0.8.8)
       sequel
+      timedcache
 
 GIT
   remote: git://github.com/adhearsion/blather.git
@@ -109,6 +110,7 @@ GEM
     sequel (4.7.0)
     thread_safe (0.1.3)
       atomic
+    timedcache (0.4.0)
     treetop (1.4.15)
       polyglot
       polyglot (>= 0.3.1)
