@@ -18,17 +18,6 @@ GIT
       timedcache
 
 GIT
-  remote: git://github.com/adhearsion/blather.git
-  revision: 50055bd2de7c7a21430910f00b17c18fa0a38176
-  specs:
-    blather (1.0.0)
-      activesupport (>= 2.3.11)
-      eventmachine (>= 1.0.0)
-      girl_friday
-      niceogiri (~> 1.0)
-      nokogiri (~> 1.5, >= 1.5.6)
-
-GIT
   remote: git://github.com/mark-moseley/linecache
   revision: 869c6a65155068415925067e480741bd0a71527e
   specs:
@@ -47,6 +36,12 @@ GEM
     archive-tar-minitar (0.5.2)
     atomic (1.1.14)
     bcrypt-ruby (3.0.1)
+    blather (1.0.0)
+      activesupport (>= 2.3.11)
+      eventmachine (>= 1.0.0)
+      girl_friday
+      niceogiri (~> 1.0)
+      nokogiri (~> 1.5, >= 1.5.6)
     columnize (0.3.6)
     connection_pool (1.2.0)
     debugger-ruby_core_source (1.2.0)
@@ -121,7 +116,7 @@ PLATFORMS
 
 DEPENDENCIES
   bcrypt-ruby
-  blather!
+  blather
   em-websocket
   factory_girl
   json
