@@ -123,6 +123,8 @@ module Libertree
         port   = @conf['port'].to_i || 5347
         socket = @conf['relay_socket'] || "/tmp/libertree-relay"
 
+        # TODO: take the appropriate setting from the config file
+        Libertree::Model::Account.set_auth_settings(:default, nil)
         Responder.setup domain, secret, host, port
         begin
           EventMachine.run {
