@@ -125,6 +125,8 @@ module Libertree
 
         # TODO: take the appropriate setting from the config file
         Libertree::Model::Account.set_auth_settings(:default, nil)
+        Libertree::Model::Server.own_domain = domain
+
         Responder.setup domain, secret, host, port
         begin
           EventMachine.run {
