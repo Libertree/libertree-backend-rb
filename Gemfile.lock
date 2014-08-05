@@ -6,7 +6,7 @@ GIT
 
 GIT
   remote: git://github.com/Libertree/libertree-model-rb.git
-  revision: 3b0757876d69487023e99b14dbb861fba85fcbc0
+  revision: 288383a67929ee38b90718ef690c4b5497fce18d
   specs:
     libertree-model (0.8.9)
       bcrypt-ruby (= 3.0.1)
