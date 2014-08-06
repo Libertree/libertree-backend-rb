@@ -117,7 +117,7 @@ module Libertree
           if recipient
             Libertree::Model::ChatMessage.
               create(from_member_id: sender_member.id,
-                     to_member_id: recipient.id,
+                     to_member_id: recipient.member.id,
                      text: stanza.body)
           end
           halt
