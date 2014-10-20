@@ -13,7 +13,7 @@ port: 5347
 
 # The path to the Unix domain socket used by the XMPP relay
 # (will be created if it does not exist)
-relay_socket: /tmp/libertree-relay
+relay_socket: tmp/libertree-relay
 
 # The administrator's email address to allow other
 # Libertree administrators to contact you.
