@@ -39,10 +39,10 @@ avatar_url: '/images/avatars/'
 debug: false
 
 # If no log_path is specified, the server logs to stdout
-# log_path: /path/to/libertree-backend-rb.log
+log_path: logs/backend.log
 
 # Specify a pid_dir to have the process id written to a file in that dir.
-# pid_dir: /path/to/libertree-backend-rb/pids
+pid_dir: pids/
 
 # websocket server settings
 websocket_listen_host: 0.0.0.0
