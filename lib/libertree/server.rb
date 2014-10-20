@@ -97,6 +97,10 @@ module Libertree
           end
 
           if @conf['log_path']
+            log_dir = File.dirname(@conf['log_path'])
+            if ! Dir.exists?(log_dir)
+              FileUtils.mkdir_p log_dir
+            end
             @log_handle = File.open( @conf['log_path'], 'a+' )
             @log_handle.sync = true
             puts "Logging to #{File.absolute_path(@log_handle.path)}"
