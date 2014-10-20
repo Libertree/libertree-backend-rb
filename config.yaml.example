@@ -6,14 +6,14 @@ domain: tree.mydomain.net
 xmpp_server: localhost
 
 # The shared secret between XMPP server and the Libertree backend
-shared_secret: 'secret'
+shared_secret: secret
 
 # The component port on the XMPP server
 port: 5347
 
 # The path to the Unix domain socket used by the XMPP relay
 # (will be created if it does not exist)
-relay_socket: '/tmp/libertree-relay'
+relay_socket: /tmp/libertree-relay
 
 # The administrator's email address to allow other
 # Libertree administrators to contact you.
@@ -26,14 +26,14 @@ contact: admin@mydomain.net
 private_key_path: /path/to/private.key
 
 # The URL base of the frontend web interface (used for URL substitution)
-frontend_url_base: 'http://domain-or-ip-without-trailing-slash'
+frontend_url_base: http://domain-or-ip-without-trailing-slash
 
 # The path to the avatars directory of the frontend on disk.  This is the
 # directory to save the avatars fetched by the http:avatar job.
-avatar_dir: '../libertree-frontend-ramaze/public/images/avatars/'
+avatar_dir: /opt/libertree/frontend-ramaze/public/images/avatars/
 
 # The frontend location through which stored avatars are accessed via HTTP.
-avatar_url: '/images/avatars/'
+avatar_url: /images/avatars/
 
 # For more verbose output, set debug to true.
 debug: false
@@ -62,4 +62,4 @@ smtp:
   helo_domain: localhost.localdomain
   starttls_auto: false
   ssl: false
-  from_address: 'exampleusername@example.org'
+  from_address: exampleusername@example.org
