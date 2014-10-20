@@ -1,6 +1,6 @@
 # The fully qualified domain name of this server
 # (the Libertree backend component)
-domain: tree.mydomain.net
+domain: libertree.localhost
 
 # The host running the XMPP server (usually localhost)
 xmpp_server: localhost
