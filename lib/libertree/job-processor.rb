@@ -10,7 +10,9 @@ module Libertree
 
     def initialize(config_filename)
       @config_filename = config_filename
-      @conf = YAML.load( File.read(config_filename) )
+      # load defaults first, then merge
+      @conf = YAML.load(File.read("#{File.dirname( __FILE__ ) }/../../defaults.yaml")).
+        merge YAML.load(File.read(config_filename))
 
       # initialise own domain (used for local member handles)
       Libertree::Model::Server.own_domain = @conf['domain']
