@@ -127,6 +127,9 @@ module Libertree
         port   = @conf['port'].to_i || 5347
         socket = @conf['relay_socket'] || "/tmp/libertree-relay"
 
+        # create directory holding the socket file
+        FileUtils.mkdir_p(File.dirname(socket))
+
         # TODO: take the appropriate setting from the config file
         Libertree::Model::Account.set_auth_settings(:default, nil)
         Libertree::Model::Server.own_domain = domain
