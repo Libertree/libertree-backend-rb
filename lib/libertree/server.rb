@@ -58,6 +58,10 @@ module Libertree
       if missing.any?
         raise ConfigurationError.new("Configuration error: Missing required configuration keys: #{missing.join(', ')}")
       end
+
+      if ! File.exists?(@conf['private_key_path'])
+        raise ConfigurationError.new("Configuration error: private key file does not exist.}")
+      end
     end
 
     def self.conf
