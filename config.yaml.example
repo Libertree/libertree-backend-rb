@@ -23,7 +23,7 @@ contact: admin@mydomain.net
 # Use generate-key-pair.rb to generate it.
 # TODO: A private key seems useful for server migration; keep this for now as a
 #       reminder although the XMPP branch does not yet use key pairs.
-private_key_path: /path/to/private.key
+private_key_path: private.key
 
 # The URL base of the frontend web interface (used for URL substitution)
 frontend_url_base: http://domain-or-ip-without-trailing-slash
