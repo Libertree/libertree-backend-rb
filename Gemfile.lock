@@ -6,9 +6,10 @@ GIT
 
 GIT
   remote: git://github.com/Libertree/libertree-model-rb.git
-  revision: 4e94dd39a95492b32666c0c0f86955a71111e5d6
+  revision: 96b76623316bb14a8f45ff95f4490ba2c1c82545
+  branch: vue-js
   specs:
-    libertree-model (0.9.7)
+    libertree-model (0.9.8)
       bcrypt-ruby (= 3.0.1)
       gpgme
       net-ldap (~> 0.5.1)

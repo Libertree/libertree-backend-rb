@@ -26,7 +26,7 @@ module Libertree
         end
 
         EventMachine::WebSocket.run(config) {|ws| self.server(ws)}
-        [:notifications, :chat_messages, :comments].each do |channel|
+        [:notifications, :chat_messages, :comments, :notifications_updated].each do |channel|
           EventMachine.defer do
             Libertree::DB.dbh.listen(channel, :loop => true) {|channel| self.handle(channel)}
           end
@@ -108,6 +108,8 @@ module Libertree
         case channel
         when 'notifications'
           self.handle_notifications
+        when 'notifications_updated'
+          self.handle_notifications_update
         when 'chat_messages'
           self.handle_chat_messages
         when 'comments'
@@ -148,6 +150,35 @@ module Libertree
               )
               socket_data[:last_notification_id] = n.id
             end
+          end
+        end
+      end
+
+      def self.handle_notifications_update
+        $sessions.each do |sid,session_data|
+          session_data[:sockets].each do |ws,socket_data|
+            account = session_data[:account]
+            account.dirty
+
+            num = account.num_notifications_unseen
+
+            if num == 0
+              # TODO: i18n is not in the backend yet
+              # title = _('No notifications')
+              title = 'No notifications'
+            else
+              # TODO: i18n is not in the backend yet
+              # title = n_('1 notification', '%d notifications', num) % num
+              title = "#{num} notification(s)"
+            end
+
+            ws.send(
+              {
+                'command' => 'notification',
+                'n' => num,
+                'iconTitle' => title,
+              }.to_json
+            )
           end
         end
       end
