@@ -129,10 +129,23 @@ module Libertree
               account.id
             )
             notifs.each do |n|
-              ws.send({ 'command' => 'notification',
-                        'id' => n.id,
-                        'n' => account.num_notifications_unseen
-                      }.to_json)
+              if account.num_notifications_unseen == 0
+                # TODO: i18n is not in the backend yet
+                # title = _('No notifications')
+                title = 'No notifications'
+              else
+                # TODO: i18n is not in the backend yet
+                # title = n_('1 notification', '%d notifications', account.num_notifications_unseen) % account.num_notifications_unseen
+                title = "#{account.num_notifications_unseen} notification(s)"
+              end
+              ws.send(
+                {
+                  'command' => 'notification',
+                  'id' => n.id,
+                  'n' => account.num_notifications_unseen,
+                  'iconTitle' => title,
+                }.to_json
+              )
               socket_data[:last_notification_id] = n.id
             end
           end
