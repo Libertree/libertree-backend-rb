@@ -32,6 +32,13 @@ module Libertree
           end
         end
         self.heartbeat
+        EventMachine.add_periodic_timer(0.1) do
+          # Ensures that EventMachine ticks at least as often as this.
+          # Otherwise, websocket data flushing/sending can take a long time for
+          # no good reason.  (It seems to flush data along with the heartbeat
+          # timer.)
+          # We don't actually have to do anything in this block.
+        end
       end
 
       def self.server(ws)
