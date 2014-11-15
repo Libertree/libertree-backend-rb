@@ -26,9 +26,11 @@ module Libertree
         end
 
         EventMachine::WebSocket.run(config) {|ws| self.server(ws)}
-        [:notifications, :chat_messages, :comments, :notifications_updated].each do |channel|
+        [:notifications, :chat_messages, :comments, :notifications_updated, :comment_deleted].each do |channel|
           EventMachine.defer do
-            Libertree::DB.dbh.listen(channel, :loop => true) {|channel| self.handle(channel)}
+            Libertree::DB.dbh.listen(channel, :loop => true) { |channel, _, payload|
+              self.handle(channel, payload)
+            }
           end
         end
         self.heartbeat
@@ -111,7 +113,7 @@ module Libertree
         end
       end
 
-      def self.handle(channel)
+      def self.handle(channel, payload)
         case channel
         when 'notifications'
           self.handle_notifications
@@ -121,6 +123,8 @@ module Libertree
           self.handle_chat_messages
         when 'comments'
           self.handle_comments
+        when 'comment_deleted'
+          self.handle_comment_deleted payload
         else
           $stderr.puts "No handler for channel: #{channel}"
         end
@@ -237,6 +241,26 @@ module Libertree
               )
               socket_data[:last_comment_id] = c.id
             end
+          end
+        end
+      end
+
+      def self.handle_comment_deleted(payload)
+        payload =~ /^(\d+),(\d+)$/
+        comment_id, post_id = Regexp.last_match[1], Regexp.last_match[2]
+
+        $sessions.each do |sid,session_data|
+          session_data[:sockets].each do |ws,socket_data|
+            account = session_data[:account]
+            account.dirty
+
+            ws.send(
+              {
+                'command'   => 'comment-deleted',
+                'commentId' => comment_id,
+                'postId'    => post_id,
+              }.to_json
+            )
           end
         end
       end
