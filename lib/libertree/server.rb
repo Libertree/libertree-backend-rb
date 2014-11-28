@@ -11,10 +11,11 @@ require 'libertree/server/websocket'
 
 module Libertree
   module Server
-    class ConfigurationError < StandardError; end
-    class MissingParameterError < StandardError; end
-    class NotFoundError < StandardError; end
-    class InternalError < StandardError; end
+    class LibertreeError < StandardError; end
+    class ConfigurationError < LibertreeError; end
+    class MissingParameterError < LibertreeError; end
+    class NotFoundError < LibertreeError; end
+    class InternalError < LibertreeError; end
 
     class << self
       attr_accessor :conf
@@ -153,6 +154,10 @@ module Libertree
         rescue Blather::Stream::ConnectionFailed
           log_error "No connection to the XMPP server on #{host}; retrying."
           sleep 3
+        rescue => e
+          log_error "Unhandled error: #{e.message}"
+          log_error "Aborting."
+          exit 1
         end
 
         if @log_handle.respond_to? :path

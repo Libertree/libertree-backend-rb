@@ -23,7 +23,9 @@ module Libertree
               to_member_id: to_member.id,
               text: params['text']
             )
-          rescue PGError => e
+          rescue LibertreeError => e
+            raise e
+          rescue => e
             fail InternalError, "Error in #{__method__}: #{e.message}", nil
           end
         end
