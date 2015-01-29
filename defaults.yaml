@@ -1,3 +1,11 @@
+#####################################################################
+# NOTE:
+#
+# These are default settings!  Do not change this file!  If you want
+# to override any settings, please do so in config.yaml instead (you
+# should copy config.yaml.example if config.yaml does not yet exist.
+
+
 # The fully qualified domain name of this server
 # (the Libertree backend component)
 domain: libertree.localhost
