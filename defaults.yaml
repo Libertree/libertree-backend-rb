@@ -53,7 +53,7 @@ log_path: logs/backend.log
 pid_dir: pids/
 
 # websocket server settings
-websocket_listen_host: 0.0.0.0
+websocket_listen_host: 127.0.0.1
 websocket_port: 8080
 secure_websocket: false
 #websocket_ssl_cert: /path/to/cert
