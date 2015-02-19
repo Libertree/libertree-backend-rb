@@ -1,3 +1,11 @@
+#####################################################################
+# NOTE:
+#
+# These are default settings!  Do not change this file!  If you want
+# to override any settings, please do so in config.yaml instead (you
+# should copy config.yaml.example if config.yaml does not yet exist.
+
+
 # The fully qualified domain name of this server
 # (the Libertree backend component)
 domain: libertree.localhost
@@ -45,7 +53,7 @@ log_path: logs/backend.log
 pid_dir: pids/
 
 # websocket server settings
-websocket_listen_host: 0.0.0.0
+websocket_listen_host: 127.0.0.1
 websocket_port: 8080
 secure_websocket: false
 #websocket_ssl_cert: /path/to/cert
