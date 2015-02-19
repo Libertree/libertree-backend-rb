@@ -29,6 +29,16 @@ conf = YAML.load(
   File.read("#{File.dirname( __FILE__ ) }/../defaults.yaml")
 ).merge YAML.load(File.read(ARGV[0]))
 
+if conf['pid_dir']
+  if ! Dir.exists?(conf['pid_dir'])
+    FileUtils.mkdir_p conf['pid_dir']
+  end
+  pid_file = File.join(conf['pid_dir'], 'websocket-server.pid')
+  File.open(pid_file, 'w') do |f|
+    f.print Process.pid
+  end
+end
+
 EventMachine.run do
   Libertree::Server::Websocket.run(conf)
 end
