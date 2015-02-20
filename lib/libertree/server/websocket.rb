@@ -161,6 +161,7 @@ module Libertree
                   'partnerMemberId'     => partner.id,
                   'numUnseen'           => account.num_chat_unseen,
                   'numUnseenForPartner' => account.num_chat_unseen_from_partner(partner),
+                  'ownMessage'          => cm.from_member_id == account.member.id,
                 }.to_json
               )
               socket_data[:last_chat_message_id] = cm.id
