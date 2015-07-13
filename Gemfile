@@ -1,7 +1,6 @@
 source 'http://rubygems.org'
-# gem 'libertree-model', git: 'git://github.com/Libertree/libertree-model-rb.git'
+gem 'libertree-model', git: 'git://github.com/Libertree/libertree-model-rb.git', branch: 'basic-groups'
 # gem 'libertree-model', path: '../libertree-model-rb'
-gem 'libertree-model', git: 'git://github.com/Libertree/libertree-model-rb.git', branch: 'vue-js'
 gem 'libertree-client', git: 'git://github.com/Libertree/libertree-client-rb.git'
 gem 'mail'
 gem 'mail-gpg'

@@ -6,10 +6,10 @@ GIT
 
 GIT
   remote: git://github.com/Libertree/libertree-model-rb.git
-  revision: 8b218867376d10c5c8078d147c0722ccd2d3d3c1
-  branch: vue-js
+  revision: 51efee49d2a4c18e5d85530af06b61c2bded5287
+  branch: basic-groups
   specs:
-    libertree-model (0.9.8)
+    libertree-model (0.9.9)
       bcrypt-ruby (= 3.0.1)
       gpgme
       net-ldap (~> 0.5.1)
@@ -18,7 +18,6 @@ GIT
       pg
       ruby-oembed (~> 0.8.8)
       sequel
-      timedcache
 
 GIT
   remote: git://github.com/mark-moseley/linecache
@@ -78,7 +77,7 @@ GEM
     nokogiri (1.6.0)
       mini_portile (~> 0.5.0)
     parkdown (1.4.25)
-    pg (0.17.1)
+    pg (0.18.2)
     polyglot (0.3.3)
     rake (10.1.1)
     rspec (2.14.1)
@@ -103,13 +102,12 @@ GEM
       columnize (>= 0.3.1)
       linecache19 (>= 0.5.11)
       ruby-debug-base19 (>= 0.11.19)
-    ruby-oembed (0.8.10)
+    ruby-oembed (0.8.14)
     ruby_core_source (0.1.5)
       archive-tar-minitar (>= 0.5.2)
-    sequel (4.15.0)
+    sequel (4.24.0)
     thread_safe (0.1.3)
       atomic
-    timedcache (0.4.0)
     treetop (1.4.15)
       polyglot
       polyglot (>= 0.3.1)
