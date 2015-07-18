@@ -7,6 +7,10 @@ module Libertree
 
       $sessions = Hash.new
 
+      def self.log(message)
+        Libertree::Server.log "[websocket] #{message}"
+      end
+
       def self.run(conf)
         config = if conf['secure_websocket']
           {
@@ -57,13 +61,14 @@ module Libertree
           begin
             self.onmessage ws, JSON.parse(json_data)
           rescue Exception => e
-            $stderr.puts e.message + "\n" + e.backtrace.join("\n\t")
+            Libertree::Server::Websocket.log e.message
+            Libertree::Server::Websocket.log e.backtrace.join("\n\t")
             raise e
           end
         end
 
         ws.onerror do |error|
-          $stderr.puts "ERROR: #{error.inspect}"
+          Libertree::Server::Websocket.log "ERROR: #{error.inspect}"
         end
       end
 
@@ -71,7 +76,7 @@ module Libertree
         sid = data['sid']
         session_account = Libertree::Model::SessionAccount[sid: sid]
         if session_account.nil?
-          puts "Unrecognized session: #{sid}"
+          Libertree::Server::Websocket.log "Unrecognized session: #{sid}"
           return
         end
 
@@ -126,7 +131,7 @@ module Libertree
         when 'comment_deleted'
           self.handle_comment_deleted payload
         else
-          $stderr.puts "No handler for channel: #{channel}"
+          Libertree::Server::Websocket.log "No handler for channel: #{channel}"
         end
       end
 
