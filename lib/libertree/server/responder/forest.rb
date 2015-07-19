@@ -21,10 +21,19 @@ module Libertree
               )
             end
 
-            trees = params['trees'].reject { |tree|
+            domains = params['trees'].reject { |tree|
               tree['domain'] == Server.conf['domain']
+            }.map { |t|
+              t['domain']
             }
-            forest.set_trees_by_domain trees.map {|t| t['domain']}
+            new_trees = forest.set_trees_by_domain(domains)
+
+            new_trees.each do |tree|
+              Libertree::Model::Job.create( {
+                task: 'request:INTRODUCE',
+                params: { 'host' => tree.domain, }.to_json,
+              } )
+            end
           rescue LibertreeError => e
             raise e
           rescue => e
