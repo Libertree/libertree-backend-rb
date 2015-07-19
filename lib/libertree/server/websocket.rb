@@ -210,6 +210,8 @@ module Libertree
               socket_data[:last_chat_message_id],
               account.member.id,
               account.member.id
+            ).exclude(
+              from_member_id: account.ignored_members.map(&:id)
             )
 
             chat_messages.each do |cm|
