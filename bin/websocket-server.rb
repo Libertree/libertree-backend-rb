@@ -34,10 +34,10 @@ conf = YAML.load(File.read("#{File.dirname( __FILE__ ) }/../defaults.yaml"))
 if ARGV[0]
   conf = conf.merge(YAML.load(File.read(ARGV[0])))
 else
-  # Please leave these as defined, without looping or string construction
   {
     'LIBERTREE_WEBSOCKET_LISTEN_HOST' => 'websocket_listen_host',
-    'LIBERTREE_WEBSOCKET_PORT' => 'websocket_port',
+    # This port is initialized/provided by Heroku
+    'PORT' => 'websocket_port',
   }.each do |env_key, conf_key|
     conf[conf_key] = ENV.fetch(env_key, conf[conf_key])
   end
