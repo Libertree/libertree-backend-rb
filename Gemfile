@@ -1,4 +1,6 @@
 source 'http://rubygems.org'
+ruby "2.2.2"
+
 gem 'libertree-model', git: 'git://github.com/Libertree/libertree-model-rb.git', branch: 'vue-js'
 # gem 'libertree-model', path: '../libertree-model-rb'
 gem 'libertree-client', git: 'git://github.com/Libertree/libertree-client-rb.git'
