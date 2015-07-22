@@ -1,33 +1,47 @@
 require 'libertree/db'
 
-if ARGV[0].nil?
-  $stderr.puts "#{$0} <config.yaml> <database.yaml>"
-  exit 1
-end
-
-if ARGV[1].nil?
-  $stderr.puts "no database configuration file given; assuming #{File.dirname( __FILE__ ) }/../database.yaml"
-  db_config = "#{File.dirname( __FILE__ ) }/../database.yaml"
-else
-  db_config = ARGV[1]
-end
-
-########################
 # Sequel wants us to connect to the db before defining models.  As model
 # definitions are loaded when 'libertree/server' is required, we have to do
 # this first.
-Libertree::DB.load_config db_config
+if ENV['DATABASE_URL']
+  # Heroku
+  ENV['DATABASE_URL'] =~ %r{postgres://(.+?):(.+?)@(.+?):(\d+)/(.+?)$}
+  Libertree::DB.config = {
+    'username' => $1,
+    'password' => $2,
+    'host' => $3,
+    'port' => $4,
+    'database' => $5,
+  }
+else
+  if ARGV[1].nil?
+    $stderr.puts "no database configuration file given; assuming #{File.dirname( __FILE__ ) }/../database.yaml"
+    db_config = "#{File.dirname( __FILE__ ) }/../database.yaml"
+  else
+    db_config = ARGV[1]
+  end
+
+  Libertree::DB.load_config db_config
+end
 Libertree::DB.dbh
-########################
 
 require 'libertree/model'
 require 'libertree/server/websocket'
 
 Thread.abort_on_exception = true
 
-conf = YAML.load(
-  File.read("#{File.dirname( __FILE__ ) }/../defaults.yaml")
-).merge YAML.load(File.read(ARGV[0]))
+conf = YAML.load(File.read("#{File.dirname( __FILE__ ) }/../defaults.yaml"))
+if ARGV[0]
+  conf = conf.merge(YAML.load(File.read(ARGV[0])))
+else
+  # Please leave these as defined, without looping or string construction
+  {
+    'LIBERTREE_WEBSOCKET_LISTEN_HOST' => 'websocket_listen_host',
+    'LIBERTREE_WEBSOCKET_PORT' => 'websocket_port',
+  }.each do |env_key, conf_key|
+    conf[conf_key] = ENV.fetch(env_key, conf[conf_key])
+  end
+end
 
 if conf['pid_dir']
   if ! Dir.exists?(conf['pid_dir'])
