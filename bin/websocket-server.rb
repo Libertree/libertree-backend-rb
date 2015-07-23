@@ -1,5 +1,6 @@
 require 'libertree/db'
 
+# TODO: DRY up this if-else pair with job-processor.rb
 # Sequel wants us to connect to the db before defining models.  As model
 # definitions are loaded when 'libertree/server' is required, we have to do
 # this first.

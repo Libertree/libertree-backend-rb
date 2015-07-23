@@ -1,29 +1,45 @@
 require 'libertree/db'
 require 'libertree/job-processor'
 
-
-if ARGV[0].nil?
-  $stderr.puts "#{$0} <config.yaml> <database.yaml>"
-  exit 1
-end
-
-if ARGV[1].nil?
-  $stderr.puts "no database configuration file given; assuming #{File.dirname( __FILE__ ) }/../database.yaml"
-  db_config = "#{File.dirname( __FILE__ ) }/../database.yaml"
+# TODO: DRY up this if-else pair with websocket-server.rb
+# Sequel wants us to connect to the db before defining models.  As model
+# definitions are loaded when 'libertree/server' is required, we have to do
+# this first.
+if ENV['DATABASE_URL']
+  # Heroku
+  ENV['DATABASE_URL'] =~ %r{postgres://(.+?):(.+?)@(.+?):(\d+)/(.+?)$}
+  Libertree::DB.config = {
+    'username' => $1,
+    'password' => $2,
+    'host' => $3,
+    'port' => $4,
+    'database' => $5,
+  }
 else
-  db_config = ARGV[1]
-end
+  if ARGV[1].nil?
+    $stderr.puts "no database configuration file given; assuming #{File.dirname( __FILE__ ) }/../database.yaml"
+    db_config = "#{File.dirname( __FILE__ ) }/../database.yaml"
+  else
+    db_config = ARGV[1]
+  end
 
-########################
-# FIXME: Sequel needs to connect to the db before defining models.  As model
-# definitions are loaded when 'lib/jobs' is required, we have to do this first.
-Libertree::DB.load_config db_config
+  Libertree::DB.load_config db_config
+end
 Libertree::DB.dbh
-########################
 
 require_relative '../lib/jobs'
 
-jobp = Libertree::JobProcessor.new( ARGV[0] )
+if ARGV[0].nil?
+  conf_init = {
+    'domain' => ENV['LIBERTREE_DOMAIN'],
+    'frontend_url_base' => ENV['LIBERTREE_FRONTEND_URL_BASE'],
+    # TODO: 'avatar_dir' for saving fetched avatars
+  }
+else
+  conf_init = nil
+end
+
+jobp = Libertree::JobProcessor.new(ARGV[0], conf_init)
 jobp.extend Jobs
 
 Jobs::Http::Avatar.options = {

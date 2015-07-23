@@ -8,11 +8,21 @@ module Libertree
 
   class JobProcessor
 
-    def initialize(config_filename)
+    # TODO:
+    # Parameters for this are kept like this for legacy compatibility reasons only
+    # Ideally it should be something like a params hash, so configuration is
+    # provided either by filename or by Hash, not both like this.
+    def initialize(config_filename, conf_init = nil)
       @config_filename = config_filename
+      @conf_init = conf_init
+
       # load defaults first, then merge
-      @conf = YAML.load(File.read("#{File.dirname( __FILE__ ) }/../../defaults.yaml")).
-        merge YAML.load(File.read(config_filename))
+      @conf = YAML.load(File.read("#{File.dirname( __FILE__ ) }/../../defaults.yaml"))
+      if @conf_init
+        @conf = @conf.merge @conf_init
+      else
+        @conf = @conf.merge YAML.load(File.read(config_filename))
+      end
 
       # initialise own domain (used for local member handles)
       Libertree::Model::Server.own_domain = @conf['domain']
@@ -74,7 +84,7 @@ module Libertree
       Signal.trap("HUP") do
         puts "\nReloading configuration."
         @log.close
-        self.send(:initialize, @config_filename)
+        self.send(:initialize, @config_filename, @conf_init)
       end
 
       until quit
