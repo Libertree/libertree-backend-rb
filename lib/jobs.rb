@@ -213,6 +213,10 @@ module Jobs
 
   module Request
     def self.init_client_conf(conf)
+      if ! File.exists?(conf['private_key_path'])
+        puts "Key pair not found at #{conf['private_key_path']}.  Generating a key pair now."
+        `./generate-key-pair.sh`
+      end
       key = OpenSSL::PKey::RSA.new File.read(conf['private_key_path'])
       @client_conf =
         {
