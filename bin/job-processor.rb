@@ -33,6 +33,7 @@ if ARGV[0].nil?
   conf_init = {
     'domain' => ENV['LIBERTREE_DOMAIN'],
     'frontend_url_base' => ENV['LIBERTREE_FRONTEND_URL_BASE'],
+    'log_path' => ENV['LIBERTREE_LOG_PATH'],
     # TODO: 'avatar_dir' for saving fetched avatars
   }
 else
