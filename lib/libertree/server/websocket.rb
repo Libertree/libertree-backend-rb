@@ -205,14 +205,14 @@ module Libertree
             account = session_data[:account]
             account.dirty
 
-            chat_messages = Libertree::Model::ChatMessage.s(
-              "SELECT * FROM chat_messages WHERE id > ? AND ( to_member_id = ? OR from_member_id = ? ) ORDER BY id",
+            chat_messages = Libertree::Model::ChatMessage.where(
+              "id > ? AND ( to_member_id = ? OR from_member_id = ? )",
               socket_data[:last_chat_message_id],
               account.member.id,
               account.member.id
             ).exclude(
               from_member_id: account.ignored_members.map(&:id)
-            )
+            ).order(:id)
 
             chat_messages.each do |cm|
               partner = cm.partner_for(account)
