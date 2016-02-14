@@ -51,7 +51,7 @@ GEM
     em-websocket (0.5.1)
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
-    eventmachine (1.0.3)
+    eventmachine (1.0.9.1)
     factory_girl (4.3.0)
       activesupport (>= 3.0.0)
     girl_friday (0.11.2)
@@ -131,3 +131,6 @@ DEPENDENCIES
   rspec
   ruby-debug-base19x (~> 0.11.30.pre4)
   ruby-debug19
+
+BUNDLED WITH
+   1.11.2
