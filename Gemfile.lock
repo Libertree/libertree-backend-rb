@@ -51,7 +51,7 @@ GEM
     em-websocket (0.5.1)
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
-    eventmachine (1.0.9.1)
+    eventmachine (1.2.0.1)
     factory_girl (4.3.0)
       activesupport (>= 3.0.0)
     girl_friday (0.11.2)
