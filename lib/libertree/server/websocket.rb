@@ -1,5 +1,6 @@
 require 'json'
 require 'em-websocket'
+require 'libertree/server'
 
 module Libertree
   module Server
