@@ -19,7 +19,10 @@ module Libertree
 
     class << self
       attr_accessor :conf
-      attr_accessor :log_handle
+
+      def log_handle
+        @log_handle || $stdout
+      end
     end
 
     include Responder
