@@ -6,18 +6,18 @@ GIT
 
 GIT
   remote: git://github.com/Libertree/libertree-model-rb.git
-  revision: 637a7386d099a29bc7c0c7686af0e86c741a9cd0
+  revision: 9387db19dc25be641faaca2302fc6b73f9270e27
   branch: vue-js
   specs:
-    libertree-model (0.9.9)
+    libertree-model (0.9.11)
       bcrypt-ruby (= 3.0.1)
       gpgme
       net-ldap (~> 0.5.1)
       nokogiri (~> 1.5)
-      parkdown (~> 1.4.25)
+      parkdown-libertree (~> 1.4.27)
       pg
       ruby-oembed (~> 0.8.8)
-      sequel
+      sequel (< 5)
 
 GIT
   remote: git://github.com/mark-moseley/linecache
@@ -27,68 +27,80 @@ GIT
       ruby_core_source (>= 0.1.4)
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
-    activesupport (4.0.2)
-      i18n (~> 0.6, >= 0.6.4)
-      minitest (~> 4.2)
-      multi_json (~> 1.3)
-      thread_safe (~> 0.1)
-      tzinfo (~> 0.3.37)
-    archive-tar-minitar (0.5.2)
-    atomic (1.1.14)
+    activesupport (5.1.5)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (~> 0.7)
+      minitest (~> 5.1)
+      tzinfo (~> 1.1)
+    archive-tar-minitar (0.6.1)
+      minitar (~> 0.6)
+      minitar-cli (~> 0.6)
     bcrypt-ruby (3.0.1)
-    blather (1.0.0)
+    blather (1.2.0)
       activesupport (>= 2.3.11)
       eventmachine (>= 1.0.0)
       girl_friday
       niceogiri (~> 1.0)
-      nokogiri (~> 1.5, >= 1.5.6)
-    columnize (0.3.6)
+      nokogiri (~> 1.5, >= 1.5.6, <= 1.6.1)
+    columnize (0.9.0)
+    concurrent-ruby (1.0.5)
     connection_pool (1.2.0)
-    debugger-ruby_core_source (1.2.0)
-    diff-lcs (1.2.5)
+    debugger-ruby_core_source (1.3.8)
+    diff-lcs (1.3)
     em-websocket (0.5.1)
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
-    eventmachine (1.2.0.1)
-    factory_girl (4.3.0)
+    eventmachine (1.2.5)
+    factory_girl (4.9.0)
       activesupport (>= 3.0.0)
     girl_friday (0.11.2)
       connection_pool (~> 1.0)
       rubinius-actor
-    gpgme (2.0.8)
-      mini_portile (>= 0.5.0)
+    gpgme (2.0.16)
+      mini_portile2 (~> 2.3)
+    hashie (3.5.7)
     http_parser.rb (0.6.0)
-    i18n (0.6.9)
-    json (1.8.1)
-    mail (2.5.4)
-      mime-types (~> 1.16)
-      treetop (~> 1.4.8)
-    mail-gpg (0.1.2)
-      gpgme (~> 2.0.2)
-      mail (~> 2.5.3)
-    mime-types (1.25.1)
-    mini_portile (0.6.2)
-    minitest (4.7.5)
-    multi_json (1.8.2)
+    i18n (0.9.5)
+      concurrent-ruby (~> 1.0)
+    json (2.1.0)
+    mail (2.7.0)
+      mini_mime (>= 0.1.1)
+    mail-gpg (0.3.1)
+      gpgme (~> 2.0, >= 2.0.2)
+      mail (~> 2.5, >= 2.5.3)
+    mini_mime (1.0.0)
+    mini_portile (0.5.3)
+    mini_portile2 (2.3.0)
+    minitar (0.6.1)
+    minitar-cli (0.6.1)
+      minitar (~> 0.6.0)
+      powerbar (~> 1.0)
+    minitest (5.11.3)
     net-ldap (0.5.1)
     niceogiri (1.1.2)
       nokogiri (~> 1.5)
-    nokogiri (1.6.6.2)
-      mini_portile (~> 0.6.0)
-    parkdown (1.4.25)
-    pg (0.18.4)
-    polyglot (0.3.3)
-    rake (10.1.1)
-    rspec (2.14.1)
-      rspec-core (~> 2.14.0)
-      rspec-expectations (~> 2.14.0)
-      rspec-mocks (~> 2.14.0)
-    rspec-core (2.14.7)
-    rspec-expectations (2.14.4)
-      diff-lcs (>= 1.1.3, < 2.0)
-    rspec-mocks (2.14.4)
+    nokogiri (1.6.1)
+      mini_portile (~> 0.5.0)
+    parkdown-libertree (1.4.27)
+    pg (1.0.0)
+    powerbar (1.0.18)
+      hashie (>= 1.1.0)
+    rake (12.3.0)
+    rspec (3.7.0)
+      rspec-core (~> 3.7.0)
+      rspec-expectations (~> 3.7.0)
+      rspec-mocks (~> 3.7.0)
+    rspec-core (3.7.1)
+      rspec-support (~> 3.7.0)
+    rspec-expectations (3.7.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.7.0)
+    rspec-mocks (3.7.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.7.0)
+    rspec-support (3.7.1)
     rubinius-actor (0.0.2)
       rubinius-core-api
     rubinius-core-api (0.0.1)
@@ -96,8 +108,8 @@ GEM
       columnize (>= 0.3.1)
       linecache19 (>= 0.5.11)
       ruby_core_source (>= 0.1.4)
-    ruby-debug-base19x (0.11.30.pre12)
-      debugger-ruby_core_source (>= 1.1.4)
+    ruby-debug-base19x (0.11.32)
+      debugger-ruby_core_source (> 0)
       rake (>= 0.8.1)
     ruby-debug19 (0.11.6)
       columnize (>= 0.3.1)
@@ -106,31 +118,28 @@ GEM
     ruby-oembed (0.8.14)
     ruby_core_source (0.1.5)
       archive-tar-minitar (>= 0.5.2)
-    sequel (4.34.0)
-    thread_safe (0.1.3)
-      atomic
-    treetop (1.4.15)
-      polyglot
-      polyglot (>= 0.3.1)
-    tzinfo (0.3.38)
+    sequel (4.49.0)
+    thread_safe (0.3.6)
+    tzinfo (1.2.5)
+      thread_safe (~> 0.1)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  bcrypt-ruby
-  blather
-  em-websocket
-  factory_girl
-  json
+  bcrypt-ruby (~> 3.0.1)
+  blather (~> 1.2.0)
+  em-websocket (~> 0.5.1)
+  factory_girl (~> 4.9.0)
+  json (~> 2.1.0)
   libertree-client!
   libertree-model!
   linecache19!
-  mail
-  mail-gpg
-  rspec
+  mail (~> 2.7.0)
+  mail-gpg (~> 0.3.1)
+  rspec (~> 3.7.0)
   ruby-debug-base19x (~> 0.11.30.pre4)
   ruby-debug19
 
 BUNDLED WITH
-   1.12.5
+   1.16.1
