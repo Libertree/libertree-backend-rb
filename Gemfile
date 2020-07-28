@@ -8,7 +8,7 @@ source 'https://rubygems.org' do
 
   group 'extensions' do
     gem 'bcrypt-ruby', '~> 3.1.5'
-    gem 'json', '~> 2.2.0'
+    gem 'json', '~> 2.3.1'
   end
 
   group 'development' do
